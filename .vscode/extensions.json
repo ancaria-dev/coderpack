@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "editorconfig.editorconfig",
+        "redhat.java",
+        "vscjava.vscode-java-dependency",
+        "vscjava.vscode-gradle",
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+    ]
+}
