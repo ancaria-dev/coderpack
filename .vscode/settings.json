@@ -1,0 +1,65 @@
+{
+    // Gradle multi-project (api/, zygote/) on Java 21, the Frida agent as plain
+    // concatenated JavaScript under agent/src, Python under tools/ and tests/.
+    // All four are written to 4 spaces and ~80 columns.
+    "editor.formatOnSave": true,
+    // Java has no shared Eclipse profile here and the agent JavaScript aligns
+    // its continuation lines by hand; a whole-file reformat on save would churn
+    // both. Only changed lines get touched.
+    "editor.formatOnSaveMode": "modifications",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.rulers": [80],
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+
+    "[markdown]": {
+        "editor.tabSize": 2
+    },
+
+    "java.configuration.updateBuildConfiguration": "automatic",
+    // No null-annotation library is on the classpath; the default asks about
+    // enabling the analysis on every fresh import.
+    "java.compile.nullAnalysis.mode": "disabled",
+    // Imports are one class per line, no wildcards, throughout api/ and zygote/.
+    "java.saveActions.organizeImports": true,
+
+    // agent/src/*.js are concatenated in file-name order into one script and run
+    // in Frida's QuickJS: no modules, no Node, one shared scope. jsconfig.json in
+    // agent/ pins that down; these two stop the editor from writing the ES module
+    // syntax that would break the concatenation. The numeric file prefixes are
+    // load order, so a rename must not trigger an import rewrite either.
+    "javascript.suggest.autoImports": false,
+    "javascript.updateImportsOnFileMove.enabled": "never",
+    // 340 double-quoted string literals to 19 single-quoted in agent/src.
+    "javascript.preferences.quoteStyle": "double",
+
+    // Emitted by the generator in the mappings repository from mappings.txt.
+    // Deliberately not excluded: it defines the RVA table every agent file
+    // reads, so it has to stay resolvable and greppable -- just not editable.
+    "files.readonlyInclude": {
+        "agent/src/gen/**": true
+    },
+
+    "files.exclude": {
+        "**/build": true,
+        "**/.gradle": true,
+        "**/__pycache__": true
+    },
+    "files.watcherExclude": {
+        "**/build/**": true,
+        "**/.gradle/**": true,
+        "**/__pycache__/**": true
+    },
+
+    // tools/addr.py and tools/hooksafe.py import their sibling `paths` by bare
+    // name.
+    "python.analysis.extraPaths": [
+        "tools"
+    ],
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingImports": "warning",
+        "reportMissingModuleSource": "none"
+    }
+}
