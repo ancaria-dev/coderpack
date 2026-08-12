@@ -1,0 +1,19 @@
+build/
+.gradle/
+.kotlin/
+
+# Regenerated from the mappings repo by `python tools/addr.py`, which
+# docs/RUNNING.md lists as a build step alongside `gradlew jar`.
+agent/src/gen/
+
+__pycache__/
+*.py[cod]
+.venv/
+
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+
+.DS_Store
+Thumbs.db
