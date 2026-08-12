@@ -1,0 +1,14 @@
+* text=auto eol=lf
+
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.jar binary
+
+gradlew linguist-vendored=true
+gradlew.bat linguist-vendored=true
+gradle/wrapper/** linguist-vendored=true
+
+# Ignored, so normally absent; this still applies if it is ever force-added.
+agent/src/gen/** linguist-generated=true
