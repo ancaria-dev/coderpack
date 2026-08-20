@@ -1,0 +1,147 @@
+name: build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      # A release is created here, and the tag on it is what records that this
+      # version has been published.
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The publish gate asks the remote whether this version's tag
+          # already exists, so the checkout needs to be a real clone.
+          fetch-depth: 0
+
+      # Checked out inside this one rather than beside it: the address
+      # generator takes a path, and a nested clone is one less path to get
+      # wrong in a job that has no workspace around it.
+      - uses: actions/checkout@v7
+        with:
+          repository: ancaria-dev/mappings
+          path: mappings
+
+      # The registry is generated from its own text file; a stale JSON here
+      # would silently give every hook the wrong address.
+      - name: Check the registry is current
+        working-directory: mappings
+        run: python mappings.generator.py --check
+
+      - name: Generate the address table
+        run: python tools/addr.py mappings
+
+      # The agent decides at attach whether the module it is looking at is the
+      # binary these addresses were found in. That check is only ever exercised
+      # by somebody with the wrong game, so it is exercised here instead:
+      # gen/addr.js and agent/signatures.json against a fake process.
+      - name: Check the agent notices the wrong game build
+        run: node tests/buildcheck.js
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - run: ./gradlew build --no-daemon
+
+      - name: Version and whether it is new
+        id: gate
+        shell: bash
+        run: |
+          version=$(grep -E "^version=" gradle.properties | cut -d= -f2)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "v$version is already published; nothing to do"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "v$version is new"
+          fi
+
+      # What the launcher downloads when it is built without this checkout
+      # beside it. The address table is inside, already generated.
+      - name: Pack the release assets
+        if: steps.gate.outputs.publish == 'true' && github.ref == 'refs/heads/master'
+        run: |
+          mkdir -p release
+          v=${{ steps.gate.outputs.version }}
+          cp "api/build/libs/api-$v.jar" release/api.jar
+          cp "zygote/build/libs/zygote-$v.jar" release/zygote.jar
+          (cd agent/src && zip -r ../../release/agent.zip .)
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: jars
+          path: '*/build/libs/*.jar'
+
+      # One signed bundle over the Portal API, not a repository deploy. The
+      # upload lands as a deployment awaiting release, because publishingType
+      # in build.gradle.kts is USER_MANAGED: a Central artifact can never be
+      # deleted, so the first ones are worth a look before they are permanent.
+      - name: Upload to Maven Central
+        if: steps.gate.outputs.publish == 'true' && github.ref == 'refs/heads/master'
+        run: ./gradlew nmcpPublishAggregationToCentralPortal --no-daemon
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+
+      # Creates the tag as well, which is what the gate above reads next time.
+      - name: Release
+        if: steps.gate.outputs.publish == 'true' && github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ steps.gate.outputs.version }}
+          files: release/*
+
+  # The API contract major is the same number in three repositories that cannot
+  # import each other. Raising one and forgetting the others makes the Gradle
+  # plugin stamp mods with a major the loader then refuses -- which is the exact
+  # failure the contract exists to prevent, one floor up. Coderpack owns the
+  # number, so the check that they still agree lives here.
+  api-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Not `build`: that is where Gradle puts its output in this repository.
+      - uses: actions/checkout@v7
+        with:
+          repository: ancaria-dev/build
+          path: plugin
+
+      - uses: actions/checkout@v7
+        with:
+          repository: ancaria-dev/launcher
+          path: launcher
+
+      # `|| true` because the step runs under `bash -eo pipefail`: a grep that
+      # finds nothing would end the job on the spot, and the whole point is to
+      # print which of the three could not be read.
+      - name: The three API majors agree
+        shell: bash
+        run: |
+          api=$(grep -oE 'VERSION = [0-9]+' api/src/main/java/dev/ancaria/coderpack/api/Api.java | grep -oE '[0-9]+' || true)
+          plugin=$(grep -oE 'String API = "[0-9]+"' plugin/verify/src/main/java/dev/ancaria/coderpack/verify/Verifier.java | grep -oE '[0-9]+' || true)
+          launcher=$(grep -oE 'const API = "[0-9]+"' launcher/mods/mods.go | grep -oE '[0-9]+' || true)
+
+          echo "coderpack  Api.VERSION    = ${api:-not found}"
+          echo "build      Verifier.API   = ${plugin:-not found}"
+          echo "launcher   mods.API       = ${launcher:-not found}"
+
+          if [ -n "$api" ] && [ "$api" = "$plugin" ] && [ "$api" = "$launcher" ]; then
+            echo "the API contract is $api in all three"
+            exit 0
+          fi
+          echo "::error::the API contract major does not agree across the three repositories. Raising it is one edit in each: Api.VERSION here, Verifier.API in the build repository, mods.API in the launcher. A value shown as 'not found' means the constant moved or was renamed, and this check has to move with it."
+          exit 1
