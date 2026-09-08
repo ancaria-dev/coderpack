@@ -358,7 +358,7 @@ These repositories are siblings of coderpack under `ancaria-dev`:
 - `launcher` owns packaging. `launcher/tools/build.ps1` copies
   `agent/src/*` and both JARs when coderpack is available beside it. Otherwise
   it downloads `agent.zip`, `api.jar`, and `zygote.jar` from the coderpack
-  release pinned in `.dependencies`.
+  release pinned in `dependencies.json`.
 - `mods` supplies the mod JARs used by `tests/replay.py`.
 - `research` contains the probes and static analysis that established the
   addresses and hook behavior.
