@@ -115,15 +115,24 @@ jobs:
       - uses: actions/checkout@v7
 
       # Not `build`: that is where Gradle puts its output in this repository.
+      # `ref` is pinned rather than left to default: actions/checkout resolves
+      # an unspecified ref on an external repo to whatever GitHub reports as
+      # its default branch, and an empty repository reports the placeholder
+      # `main` even though every ancaria-dev repository publishes to `master`.
+      # Pushing coderpack before a sibling has any commits at all then fails
+      # this checkout with "couldn't find remote ref refs/heads/main" instead
+      # of a clear ordering error.
       - uses: actions/checkout@v7
         with:
           repository: ancaria-dev/build
           path: plugin
+          ref: master
 
       - uses: actions/checkout@v7
         with:
           repository: ancaria-dev/launcher
           path: launcher
+          ref: master
 
       # `|| true` because the step runs under `bash -eo pipefail`: a grep that
       # finds nothing would end the job on the spot, and the whole point is to
