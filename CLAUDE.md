@@ -240,7 +240,10 @@ that Sacred commits the requested memory change.
 
 CI reads `version` from `gradle.properties` on `master`. It publishes only when
 the remote lacks `v<version>`, then creates that tag as the release record.
-Raising the version is what ships a release.
+Raising the version is what ships a release. `tools/version.ps1` prints the
+current one with no argument, or raises it everywhere it is written --
+`gradle.properties`, the Javadoc in `Api.java`, and the three READMEs -- with
+`pwsh tools/version.ps1 0.99.1`.
 
 The release contains `api.jar`, `zygote.jar`, and `agent.zip`.
 `agent.zip` already includes `gen/addr.js`. CI also uploads both Java modules
