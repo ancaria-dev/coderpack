@@ -132,6 +132,48 @@ Listener code for a veto runs while the game thread is stopped, so keep it
 short. After 250 ms, the host abandons an unanswered veto and lets the original
 value through.
 
+### The same mod in Kotlin
+
+`dev.ancaria.coderpack:api-kotlin` is the same API with Kotlin syntax on top. It
+adds no capability: every declaration forwards to a method on `api`, and almost
+all of them are inline. The loader does not hand it to a mod, so a mod that
+wants it packs it, next to the standard library it already carries.
+
+```kotlin
+dependencies {
+    implementation("dev.ancaria.coderpack:api-kotlin:0.99.0")
+}
+```
+
+```kotlin
+package com.example
+
+import dev.ancaria.coderpack.api.Context
+import dev.ancaria.coderpack.api.event.Gold
+import dev.ancaria.coderpack.ktx.SacredMod
+import dev.ancaria.coderpack.ktx.delta
+import dev.ancaria.coderpack.ktx.on
+import dev.ancaria.coderpack.ktx.spending
+
+class DoubleGold : SacredMod() {
+
+    override fun Context.load() {
+        on<Gold> { if (!it.spending) it.delta *= 2 }
+    }
+}
+```
+
+Three things are doing the work there. `SacredMod` is the abstract class from
+`…ktx`, which keeps the context and hands it to `load` as a receiver, so `on`
+and `log` read as bare calls. `on<Gold>` takes the event as a type argument
+instead of a class literal, and `events { }` groups several of those into one
+block. And a field the API lets a listener rewrite is a `var`, which is the
+whole of `it.delta *= 2`. Fields the API refuses to rewrite, `Gold.current`
+among them, stay read-only here too.
+
+`@Subscribe` works exactly as it does from Java, and so does implementing
+`dev.ancaria.coderpack.api.SacredMod` directly. None of this is required.
+
 ## Building Coderpack
 
 You need JDK 21 or newer and Python 3.11. The Gradle wrapper downloads Gradle
@@ -139,7 +181,7 @@ You need JDK 21 or newer and Python 3.11. The Gradle wrapper downloads Gradle
 `tests/buildcheck.js` needs Node.
 
 ```
-gradlew build                  the two jars, in api/build/libs and zygote/build/libs
+gradlew build                  the three jars, in */build/libs
 gradlew publishToMavenLocal    so a mod build can resolve the API from mavenLocal
 python tools/addr.py           regenerates agent/src/gen/addr.js
 python tools/hooksafe.py       refuses hook sites a trampoline would corrupt
@@ -180,8 +222,9 @@ verdict, and verifies the trace, including an unknown event. It cannot prove
 that the game commits the requested value.
 
 On `master`, CI publishes only when the remote has no `v<version>` tag for the
-version in `gradle.properties`. It uploads the API and zygote artifacts to
-Maven Central as one signed bundle over the Portal API, attaches `api.jar`,
+version in `gradle.properties`. It uploads the API, its Kotlin
+extensions and the zygote to Maven Central as one signed bundle over the Portal
+API, attaches `api.jar`,
 `zygote.jar`, and `agent.zip` to a GitHub release, then creates the tag. The
 generated address table is already inside `agent.zip`, which is what the host
 builds itself around when it has no coderpack checkout beside it.
@@ -196,6 +239,7 @@ first releases are worth looking at.
 |---|---|
 | `agent/` | Plain JavaScript injected by Frida. It hooks individual x86 instructions and reports what it sees. Addresses come from `gen/addr.js`. |
 | `api/` | `dev.ancaria.coderpack:api`, which mods compile against. It has no runtime dependencies. JSR 305 is compile-only. |
+| `api-kotlin/` | `dev.ancaria.coderpack:api-kotlin`, the same API in Kotlin. Inline extensions over `api`, in package `dev.ancaria.coderpack.ktx`. The loader does not provide it; a mod that uses it packs it. |
 | `zygote/` | `dev.ancaria.coderpack:zygote`. It reads frames from the host, finds mod JARs, gives each mod its own class loader, and dispatches events. |
 | `tools/`, `tests/`, `docs/` | Address and safety tools, test harnesses, and [RUNNING.md](docs/RUNNING.md) for build, run, and crash-bisection instructions. |
 

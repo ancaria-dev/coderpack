@@ -135,6 +135,50 @@ public final class DoubleGold implements SacredMod {
 решение не более 250 мс, после чего разрешает игре использовать исходное
 значение. Поэтому слушатели должны завершаться быстро.
 
+### Тот же мод на Kotlin
+
+`dev.ancaria.coderpack:api-kotlin` — это тот же API, записанный синтаксисом
+Kotlin. Новых возможностей он не добавляет: каждое объявление вызывает метод из
+`api`, и почти все они inline. Загрузчик его моду не выдаёт, поэтому мод
+упаковывает модуль внутрь своего jar, рядом со стандартной библиотекой, которую
+и так несёт.
+
+```kotlin
+dependencies {
+    implementation("dev.ancaria.coderpack:api-kotlin:0.99.0")
+}
+```
+
+```kotlin
+package com.example
+
+import dev.ancaria.coderpack.api.Context
+import dev.ancaria.coderpack.api.event.Gold
+import dev.ancaria.coderpack.ktx.SacredMod
+import dev.ancaria.coderpack.ktx.delta
+import dev.ancaria.coderpack.ktx.on
+import dev.ancaria.coderpack.ktx.spending
+
+class DoubleGold : SacredMod() {
+
+    override fun Context.load() {
+        on<Gold> { if (!it.spending) it.delta *= 2 }
+    }
+}
+```
+
+Работают здесь три вещи. `SacredMod` — абстрактный класс из `…ktx`: он хранит
+контекст и передаёт его в `load` как receiver, поэтому `on` и `log` пишутся без
+префикса. `on<Gold>` принимает событие параметром типа, а не литералом класса, а
+блок `events { }` собирает несколько таких вызовов вместе. Поле, которое API
+разрешает переписать, объявлено как `var`, и вся правка умещается в
+`it.delta *= 2`. Поля, переписывать которые API не даёт, `Gold.current` в их
+числе, остаются только для чтения и здесь.
+
+`@Subscribe` работает ровно так же, как из Java, и реализовать
+`dev.ancaria.coderpack.api.SacredMod` напрямую по-прежнему можно. Ничего из
+этого не обязательно.
+
 ## Сборка coderpack
 
 Нужны JDK 21 или новее и Python 3.11. Wrapper сам скачает Gradle 9.7.1.
@@ -143,7 +187,7 @@ public final class DoubleGold implements SacredMod {
 `node tests/buildcheck.js` и проверяет агент на поддельном процессе.
 
 ```
-gradlew build                  два jar, в api/build/libs и zygote/build/libs
+gradlew build                  три jar, в */build/libs
 gradlew publishToMavenLocal    чтобы сборка мода взяла API из mavenLocal
 python tools/addr.py           заново генерирует agent/src/gen/addr.js
 python tools/hooksafe.py       отбраковывает места, где трамплин всё поломает
@@ -185,7 +229,8 @@ Frida ставит переход длиной не менее пяти байт
 только запущенная игра.
 
 CI читает `version` из `gradle.properties`. При отправке в `master` новая
-версия без тега `v<version>` отправляет артефакты API и zygote в Maven Central
+версия без тега `v<version>` отправляет артефакты API, его Kotlin-расширений и
+zygote в Maven Central
 — одним подписанным архивом через Portal API, а не деплоем в репозиторий. Тот
 же запуск создаёт релиз с `api.jar`, `zygote.jar` и `agent.zip`, где уже
 находится сгенерированная таблица адресов, а затем ставит тег. Именно этот
@@ -202,6 +247,7 @@ Publish. Артефакт в Central нельзя удалить никогда,
 |---|---|
 | `agent/` | Обычный JavaScript для Frida. Он ставит хуки на инструкции x86 и отправляет события. Адреса загружаются из `gen/addr.js`. |
 | `api/` | `dev.ancaria.coderpack:api`, публичный контракт для модов. У него нет runtime-зависимостей. JSR 305 подключён только как `compileOnly`. |
+| `api-kotlin/` | `dev.ancaria.coderpack:api-kotlin`, тот же контракт на Kotlin. Inline-расширения над `api` в пакете `dev.ancaria.coderpack.ktx`. Загрузчик его не раздаёт: мод, которому он нужен, упаковывает его сам. |
 | `zygote/` | `dev.ancaria.coderpack:zygote`, загрузчик на стороне JVM. Он читает кадры от хоста, проверяет дескрипторы, создаёт отдельный class loader для каждого jar и рассылает события. |
 | `tools/`, `tests/`, `docs/` | Генератор адресов, проверка хуков, тестовые стенды и [RUNNING.md](docs/RUNNING.md) с инструкциями по запуску. |
 

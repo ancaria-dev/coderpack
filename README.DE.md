@@ -154,6 +154,51 @@ Listener müssen kurz bleiben. Nach 250 ms beendet der Host die Wartezeit und
 lässt den ursprünglichen Wert passieren. Aufrufe über `context.game()` warten
 höchstens zwei Sekunden auf eine Antwort des Agents.
 
+### Derselbe Mod in Kotlin
+
+`dev.ancaria.coderpack:api-kotlin` ist dieselbe API in Kotlin-Syntax. Sie kann
+nichts, was die Java-API nicht kann: jede Deklaration ruft eine Methode aus
+`api` auf, und fast alle sind inline. Der Loader reicht dieses Modul nicht an
+einen Mod weiter, also packt der Mod es selbst ein, neben die
+Standardbibliothek, die er ohnehin trägt.
+
+```kotlin
+dependencies {
+    implementation("dev.ancaria.coderpack:api-kotlin:0.99.0")
+}
+```
+
+```kotlin
+package com.example
+
+import dev.ancaria.coderpack.api.Context
+import dev.ancaria.coderpack.api.event.Gold
+import dev.ancaria.coderpack.ktx.SacredMod
+import dev.ancaria.coderpack.ktx.delta
+import dev.ancaria.coderpack.ktx.on
+import dev.ancaria.coderpack.ktx.spending
+
+class DoubleGold : SacredMod() {
+
+    override fun Context.load() {
+        on<Gold> { if (!it.spending) it.delta *= 2 }
+    }
+}
+```
+
+Drei Dinge tun dort die Arbeit. `SacredMod` ist die abstrakte Klasse aus
+`…ktx`; sie hält den Context und übergibt ihn `load` als Receiver, sodass `on`
+und `log` ohne Präfix stehen. `on<Gold>` nimmt das Ereignis als Typargument
+statt als Klassenliteral, und `events { }` fasst mehrere solcher Aufrufe zu
+einem Block zusammen. Und ein Feld, das die API überschreiben lässt, ist ein
+`var`, worin die ganze Änderung `it.delta *= 2` besteht. Felder, die die API
+nicht überschreiben lässt, `Gold.current` darunter, bleiben auch hier nur
+lesbar.
+
+`@Subscribe` funktioniert genau wie aus Java, und
+`dev.ancaria.coderpack.api.SacredMod` direkt zu implementieren ebenfalls.
+Nichts davon ist Pflicht.
+
 ## Coderpack bauen
 
 Benötigt werden ein JDK ab Version 21 und Python 3.11. Der Gradle-Wrapper lädt
@@ -161,7 +206,7 @@ Gradle 9.7.1 selbst. `hooksafe.py` benötigt zusätzlich `pefile` und `capstone`
 Für `tests/buildcheck.js` wird Node.js gebraucht.
 
 ```
-gradlew build                  die zwei JARs, in api/build/libs und zygote/build/libs
+gradlew build                  die drei JARs, in */build/libs
 gradlew publishToMavenLocal    damit ein Mod-Build die API aus mavenLocal zieht
 python tools/addr.py           erzeugt agent/src/gen/addr.js neu
 python tools/hooksafe.py       weist Hook-Stellen ab, die ein Trampolin zerlegt
@@ -210,8 +255,9 @@ das Spiel den gewünschten Wert anschließend wirklich übernimmt, kann nur ein
 Test im Spiel klären.
 
 Auf dem Branch `master` liest die CI `version` aus `gradle.properties`. Gibt es
-auf dem Remote noch keinen Tag `v<version>`, lädt sie API und zygote als ein
-signiertes Bündel über die Portal-API zu Maven Central hoch, legt `api.jar`,
+auf dem Remote noch keinen Tag `v<version>`, lädt sie API, ihre Kotlin-Erweiterungen und den
+zygote als ein signiertes Bündel über die Portal-API zu Maven Central hoch, legt
+`api.jar`,
 `zygote.jar` und `agent.zip` als Release-Artefakte ab und erstellt den Tag.
 `agent.zip` enthält bereits die erzeugte Adresstabelle und ist das, was der Host
 in sich einbettet, wenn kein coderpack-Checkout neben ihm liegt. Eine höhere
@@ -227,6 +273,7 @@ ersten Releases sind also einen Blick wert.
 |---|---|
 | `agent/` | Von Frida injiziertes JavaScript. Setzt Hooks auf x86-Instruktionen und sendet die beobachteten Vorgänge. Die Adressen kommen aus `gen/addr.js`. |
 | `api/` | `dev.ancaria.coderpack:api`. Dagegen werden Mods kompiliert. Zur Laufzeit hat das Modul keine Abhängigkeiten. JSR 305 ist nur als compileOnly eingebunden. |
+| `api-kotlin/` | `dev.ancaria.coderpack:api-kotlin`, dieselbe API in Kotlin. Inline-Erweiterungen über `api` im Paket `dev.ancaria.coderpack.ktx`. Der Loader liefert das Modul nicht mit; ein Mod, der es nutzt, packt es ein. |
 | `zygote/` | `dev.ancaria.coderpack:zygote`. Liest Frames vom Host, findet die Mod-JARs, gibt jeder einen eigenen Classloader und verteilt die Ereignisse. |
 | `tools/`, `tests/`, `docs/` | Adressgenerator und Hook-Prüfung, Tests ohne laufendes Spiel sowie [RUNNING.md](docs/RUNNING.md) mit den Schritten zum Starten. |
 
