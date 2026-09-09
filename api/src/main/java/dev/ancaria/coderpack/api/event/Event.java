@@ -8,16 +8,17 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * Base of every event. The wire carries flat string fields; subclasses name the
- * ones that matter and leave the rest reachable through {@link #fields()} so a
- * new field on the agent side does not require an SDK release to be usable.
+ * Base of every event. The wire carries flat string fields. Subclasses name
+ * the ones that matter and leave the rest reachable through {@link #fields()},
+ * so a new field on the agent side does not require an SDK release to be
+ * usable.
  */
 public abstract class Event {
 
     private final Map<String, String> fields;
 
     // Filled on the first num() for a key. A getter is the natural thing to
-    // call twice -- once in a condition, once in the arithmetic -- and every
+    // call twice, once in a condition and once in the arithmetic, and every
     // call used to re-run parseLong over the same string.
     private Map<String, Long> numbers;
 
@@ -38,9 +39,8 @@ public abstract class Event {
     }
 
     // num() and once() are the same read with and without the memo, and which
-    // one an event wants is not a matter of taste. The deciding question is not
-    // whether parsing is slow -- it is whether the memo is ever read a second
-    // time, and how often the event fires.
+    // one an event wants is not a matter of taste. What decides it is whether
+    // the memo is ever read a second time, and how often the event fires.
     //
     //   num()  memoizes. Right wherever a getter is plausibly read twice, or
     //          wherever the event is rare enough that one HashMap is noise.
@@ -50,12 +50,11 @@ public abstract class Event {
     //          next to which a map costs nothing measurable.
     //   once() does not. Right only where the event is hot AND each getter is
     //          read once. There the memo turns two parseLong calls into a
-    //          HashMap plus two boxed puts -- measured at 232 bytes a frame
-    //          against 24 -- to save nothing, on the frame that can least
-    //          afford it.
+    //          HashMap plus two boxed puts, 232 bytes a frame against 24, and
+    //          buys nothing on the frame that can least afford it.
     //
     // Position is the only event that meets both, and says why at length. The
-    // inconsistency between them is deliberate; read that comment before
+    // inconsistency between them is deliberate. Read that comment before
     // resolving it in either direction.
 
     /** The field as a number, parsed on the first call and remembered. */

@@ -13,7 +13,7 @@ import javax.annotation.Nonnull;
  * <p>Both powers come from the game's own code rather than from a trick: the
  * pickup function looks the item up by reference and, when the lookup fails,
  * jumps to its epilogue having done nothing. Cancelling hands it a reference
- * that resolves to nothing; {@link #replace(int)} hands it a different one.
+ * that resolves to nothing, and {@link #replace(int)} hands it another.
  *
  * <p>Only the hero's pickups are asked about. A creature picking something up
  * arrives as an ordinary event with {@link #player()} false, and cancelling it
@@ -40,7 +40,7 @@ public final class Pickup extends Veto {
 
     /**
      * Pick up a different object instead. The reference has to be one that
-     * already exists -- Coderpack cannot conjure an item, so this swaps between
+     * already exists. Coderpack cannot conjure an item, so this swaps between
      * things the world already holds. An unknown reference picks up nothing,
      * which is the same as cancelling.
      */
@@ -54,13 +54,13 @@ public final class Pickup extends Veto {
      * the object itself and the change outlives the event.
      *
      * <p>It changes what the item is called and how it is drawn, and nothing
-     * else -- see {@link dev.ancaria.coderpack.api.Game#retype(int, int)}.
+     * else. See {@link dev.ancaria.coderpack.api.Game#retype(int, int)}.
      */
     public void type(int typeId) {
         rewrite("type", typeId);
     }
 
-    /** Base value; the tooltip price is derived from it. */
+    /** Base value. The tooltip price is derived from it. */
     public void price(int value) {
         rewrite("price", value);
     }
@@ -68,12 +68,11 @@ public final class Pickup extends Veto {
     /**
      * Make this item a copy of one that already exists.
      *
-     * <p>The reliable way to turn an item into another: rather than assembling
-     * a plausible one out of a type id and hoping the rest follows, take
-     * everything that makes an item what it is from a real one that was seen in
-     * this session. That is the difference between a rune that is renamed and a
-     * rune that works -- what a rune upgrades is in its modifiers, not its
-     * name.
+     * <p>This is the reliable way to turn an item into another. Rather than
+     * assembling a plausible one out of a type id and hoping the rest follows,
+     * take everything that makes an item what it is from a real one seen in
+     * this session. A rune upgrades what its modifiers name, so a retyped rune
+     * without them is only renamed.
      */
     public void copy(Item template) {
         rewrite("type", template.typeId());

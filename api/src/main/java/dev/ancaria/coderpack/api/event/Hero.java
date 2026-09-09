@@ -8,7 +8,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * The hero object was found -- fired once per world load, and again if the
+ * The hero object was found. Fired once per world load, and again if the
  * player switches character. Everything a mod needs to decide "whose game is
  * this" arrives here.
  */

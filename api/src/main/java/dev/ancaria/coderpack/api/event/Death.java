@@ -2,7 +2,7 @@ package dev.ancaria.coderpack.api.event;
 
 import java.util.Map;
 
-/** The player's HP reached zero. Not vetoable -- it already happened. */
+/** The player's HP reached zero. Not vetoable, because it already happened. */
 public final class Death extends Event {
 
     public Death(Map<String, String> fields) {

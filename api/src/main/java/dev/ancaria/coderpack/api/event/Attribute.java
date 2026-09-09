@@ -6,9 +6,9 @@ import javax.annotation.Nullable;
 
 /**
  * An attribute point was just spent. Vetoable, but applied differently from the
- * others: there is no register to swap here, so Coderpack writes the field after the
- * game's own grant returns. The result is the same -- nothing else has observed
- * the value yet.
+ * others. There is no register to swap here, so Coderpack writes the field
+ * after the game's own grant returns. The result is the same, because nothing
+ * else has observed the value yet.
  */
 public final class Attribute extends Veto {
 

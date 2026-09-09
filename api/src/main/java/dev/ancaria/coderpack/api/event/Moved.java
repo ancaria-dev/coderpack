@@ -5,7 +5,8 @@ import java.util.Map;
 /**
  * An item was dragged from one inventory slot to another. The game's move
  * function carries grid indices and nothing else, so there is no item identity
- * on this path -- it is the signal that a bag was rearranged, not what by.
+ * on this path. It is the signal that a bag was rearranged, without saying
+ * what by.
  */
 public final class Moved extends Event {
 

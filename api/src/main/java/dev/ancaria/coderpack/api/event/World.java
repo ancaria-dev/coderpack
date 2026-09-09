@@ -5,9 +5,9 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 /**
- * Session lifecycle. {@link Phase#LOADED} is the first moment the world exists;
- * {@link Phase#HERO_TERMINATED} is when the hero pointer stops being valid, so
- * anything holding player state should drop it there.
+ * Session lifecycle. {@link Phase#LOADED} is the first moment the world
+ * exists. {@link Phase#HERO_TERMINATED} is when the hero pointer stops being
+ * valid, so anything holding player state should drop it there.
  */
 @Delivery.Unstable("Not every path into a phase is hooked, so a phase"
         + " can be missed entirely.")

@@ -3,11 +3,11 @@ package dev.ancaria.coderpack.api.entity;
 import javax.annotation.Nonnull;
 
 /**
- * The hero. Reads come from the last state Coderpack saw, so they are free; writes go
- * to the game thread and take effect immediately.
+ * The hero. Reads come from the last state Coderpack saw, so they are free.
+ * Writes go to the game thread and take effect immediately.
  *
  * <p>Where the game has its own primitive, Coderpack calls it instead of writing the
- * field -- the engine then refreshes its own caches and anti-cheat mirrors, and
+ * field. The engine then refreshes its own caches and anti-cheat mirrors, and
  * the result matches the UI by construction.
  */
 public interface Player {

@@ -11,10 +11,10 @@ import javax.annotation.Nullable;
  * An item, as the fields that came with the event.
  *
  * <p>There is no display name here on purpose. Sacred composes item names from
- * affixes -- "Damaged" + base + "of Oblivion" -- so no single string exists to
+ * affixes ("Damaged" + base + "of Oblivion"), so no single string exists to
  * read, and {@link #typeName()} is the stable identifier. It is internal and
  * English ({@code TYPE_OBJECT_RING_FIRE01}), which is exactly what mod logic
- * should match on; anything shown to a player has to be localized instead.
+ * should match on. Anything shown to a player has to be localized instead.
  */
 public final class Item {
 
@@ -38,7 +38,7 @@ public final class Item {
         return number("type");
     }
 
-    /** Null when the reference did not resolve; see {@link #known()}. */
+    /** Null when the reference did not resolve. See {@link #known()}. */
     @Nullable
     public String typeName() {
         return fields.get("name");
@@ -57,7 +57,7 @@ public final class Item {
         return number("atk");
     }
 
-    /** The tooltip's bracketed number: the game shows the two parts added up. */
+    /** The tooltip's bracketed number. The game shows the two parts added up. */
     public int protection() {
         return number("prot");
     }
@@ -67,8 +67,8 @@ public final class Item {
     }
 
     /**
-     * Base value. The price on the tooltip is derived from it -- it moves with
-     * charisma -- so this is the number that actually belongs to the item.
+     * Base value. The tooltip price is derived from it and moves with charisma,
+     * so this is the number that actually belongs to the item.
      * A small red potion is 400 and a large one 1200.
      */
     public int price() {
@@ -83,12 +83,12 @@ public final class Item {
     }
 
     /**
-     * The modifier list: what the item actually DOES, as {@code id -> value}.
+     * What the item actually DOES, as {@code id -> value}.
      *
      * <p>Not the same thing as {@link #typeId()}, and the difference matters.
-     * The type is what an item is called and drawn as; the modifiers are its
+     * The type is what an item is called and drawn as. The modifiers are its
      * effect. A rune retyped into another rune is renamed and still upgrades
-     * the combat art its modifiers name -- which is why swapping the type alone
+     * the combat art its modifiers name, which is why swapping the type alone
      * leaves a foreign rune foreign.
      *
      * <p>Ids seen so far: 601 Weapon Lore, 802 fire resist, 805 physical
@@ -124,7 +124,7 @@ public final class Item {
         return Collections.unmodifiableMap(out);
     }
 
-    /** False when the ref did not resolve -- the item was gone by then. */
+    /** False when the ref did not resolve. The item was gone by then. */
     public boolean known() {
         return fields.get("name") != null;
     }

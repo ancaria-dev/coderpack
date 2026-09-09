@@ -4,7 +4,7 @@ package dev.ancaria.coderpack.api;
 public interface SacredMod {
 
     /**
-     * Register listeners here. The world may not exist yet -- wait for a
+     * Register listeners here. The world may not exist yet, so wait for a
      * {@code World} or {@code Hero} event before touching the player.
      */
     void onLoad(Context context);

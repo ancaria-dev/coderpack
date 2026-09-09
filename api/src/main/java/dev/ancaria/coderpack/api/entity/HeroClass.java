@@ -4,11 +4,11 @@ import javax.annotation.Nonnull;
 
 /**
  * The nine playable classes. The id is {@code full+0x10}, the same field that
- * holds a creature type id for everything else -- which is what lets a Player
+ * holds a creature type id for everything else, which is what lets a Player
  * and a monster share one Entity shape.
  *
  * <p>The game calls id 9 "Daemon" in the UI although its internal name is
- * Succubus; the UI name is the one used here.
+ * Succubus. The UI name is the one used here.
  */
 public enum HeroClass {
 

@@ -18,7 +18,9 @@ public class MobHit extends Event {
         return (int) num("type");
     }
 
-    /** Internal name, e.g. TYPE_NPC_GHUL01. Stable and English -- match on this. */
+    /**
+     * Internal name, e.g. TYPE_NPC_GHUL01. Stable and English, so match on it.
+     */
     @Nullable
     public String typeName() {
         return text("name");

@@ -15,12 +15,12 @@ public interface Context {
     @Nonnull
     Events events();
 
-    /** The imperative side: acting on the game rather than reacting to it. */
+    /** Acting on the game rather than reacting to it. */
     @Nonnull
     Game game();
 
     /**
-     * The Sacred Gold install directory -- the folder that holds mods/ and the
+     * The Sacred Gold install directory, the folder that holds mods/ and the
      * game executable. Anything a mod writes (logs, config) belongs under here,
      * not next to whatever the working directory happens to be.
      */

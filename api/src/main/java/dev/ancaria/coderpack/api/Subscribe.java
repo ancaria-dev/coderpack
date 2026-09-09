@@ -18,7 +18,7 @@ public @interface Subscribe {
      *
      * <p>Off by default, because a listener that undoes its own side effects
      * has to hear about the cancel too. Turn it on when the listener only acts
-     * on an event that is really going to happen -- which is most of them.
+     * on an event that is really going to happen, which is most of them.
      */
     boolean ignoreCancelled() default false;
 }

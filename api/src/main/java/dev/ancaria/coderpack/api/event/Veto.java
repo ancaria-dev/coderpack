@@ -11,11 +11,11 @@ import javax.annotation.Nonnull;
  * An event fired before the game commits the value, where a listener may
  * suppress it or rewrite it.
  *
- * <p>Which events are vetoable is decided by the game's code, not by taste: it
- * works only where the hook sits before the write and Coderpack owns the register (or
- * can rewrite the field before anything else observes it). The game thread is
- * stopped while listeners run, so keep them short -- the host cuts the veto off
- * after its deadline and lets the original value through.
+ * <p>Which events are vetoable is decided by the game's code, not by taste. It
+ * works only where the hook sits before the write and Coderpack owns the
+ * register (or can rewrite the field before anything else observes it). The
+ * game thread is stopped while listeners run, so keep them short. The host
+ * cuts the veto off after its deadline and lets the original value through.
  *
  * <p>A cancel does not stop the dispatch. Later listeners still see the event,
  * and a listener that has nothing to say about a cancelled one asks to be
@@ -28,8 +28,8 @@ public abstract class Veto extends Event {
     private final Map<String, String> rewrites = new LinkedHashMap<>();
     private boolean canceled;
 
-    // Set by the loader around a MONITOR listener; see Guard, which is the only
-    // thing that touches either of these.
+    // Set by the loader around a MONITOR listener. Guard is the only thing that
+    // touches either of these.
     boolean watching;
     boolean refused;
 

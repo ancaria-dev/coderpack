@@ -3,9 +3,9 @@ package dev.ancaria.coderpack.api.event;
 import java.util.Map;
 
 /**
- * A skill value is about to change. Slots are reported by index, never by name:
- * the skill set differs per class and per character, so any fixed index-to-name
- * table would be wrong for most saves.
+ * A skill value is about to change. Slots are reported by index, never by
+ * name. The skill set differs per class and per character, so any fixed
+ * index-to-name table would be wrong for most saves.
  */
 public final class Skill extends Veto {
 
