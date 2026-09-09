@@ -32,6 +32,7 @@ public final class Main {
     private static volatile boolean working;
 
     public static void main(String[] args) throws Exception {
+        claimStdout();
         Path mods = Path.of(argument(args, "--mods", "mods")).toAbsolutePath().normalize();
         // Mods live in <Sacred Gold>/mods, so the game folder is one level up.
         // A mod writing a file needs that, not the working directory, which
@@ -79,6 +80,28 @@ public final class Main {
      */
     private static void quit() {
         System.exit(0);
+    }
+
+    /**
+     * Points {@code System.out} at stderr before a single mod class is loaded.
+     *
+     * <p>stdout is the protocol. {@link Pipe} writes frames through its own
+     * stream on the file descriptor, so this redirect never touches them, but
+     * every other writer has to be moved out of the way. A mod calling
+     * {@code println} shares neither that stream nor its lock, and the loss is
+     * not the stray line, which the host reports and skips. It is the frame the
+     * stray line splices itself into: a verdict that never arrives leaves the
+     * game thread waiting for the host's fallback, and a command that never
+     * arrives costs the dispatch thread its full two-second timeout.
+     *
+     * <p>This also covers a mod that brings a logging framework, which is the
+     * likelier way to hit it. Log4j2 and Logback both aim their console
+     * appender at {@code System.out} by default, and both read it when they
+     * configure themselves, on that mod's first call to a logger. That is
+     * necessarily later than this, so both land on stderr with nothing to set.
+     */
+    private static void claimStdout() {
+        System.setOut(System.err);
     }
 
     private static void offer(Frame frame) {

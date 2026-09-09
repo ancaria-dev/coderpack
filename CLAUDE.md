@@ -457,8 +457,12 @@ These repositories are siblings of coderpack under `ancaria-dev`:
 
 - A fresh checkout has no `agent/src/gen/addr.js`. Run `python tools/addr.py`
   first. Without that file, the host reports it missing and installs no hooks.
-- stdout carries protocol frames and nothing else. A mod that calls
-  `System.out` corrupts the stream. Mods must use `context.log`.
+- stdout carries protocol frames and nothing else. `Main.claimStdout` points
+  `System.out` at stderr before the first mod loads, so a mod that calls
+  `println`, or configures Log4j2 or Logback, cannot splice itself into a
+  frame. `Pipe` writes through its own stream on the file descriptor and is
+  unaffected. Keep it that way: a `Pipe` rewritten to use `System.out` would
+  send every frame to stderr and answer nothing.
 - Closing the host does not reliably unload an injected agent. Restart the game
   after changing a hook.
 - If the game runs elevated, Frida cannot attach from a normal shell. The host
