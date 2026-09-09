@@ -37,7 +37,7 @@
 
     // Emitted by the generator in the mappings repository from mappings.txt.
     // Deliberately not excluded: it defines the RVA table every agent file
-    // reads, so it has to stay resolvable and greppable -- just not editable.
+    // reads, so it has to stay resolvable and greppable, just not editable.
     "files.readonlyInclude": {
         "agent/src/gen/**": true
     },

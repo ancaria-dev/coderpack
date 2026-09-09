@@ -241,8 +241,8 @@ that Sacred commits the requested memory change.
 CI reads `version` from `gradle.properties` on `master`. It publishes only when
 the remote lacks `v<version>`, then creates that tag as the release record.
 Raising the version is what ships a release. `tools/version.ps1` prints the
-current one with no argument, or raises it everywhere it is written --
-`gradle.properties`, the Javadoc in `Api.java`, and the three READMEs -- with
+current one with no argument, or raises it everywhere it is written
+(`gradle.properties`, the Javadoc in `Api.java`, and the three READMEs) with
 `pwsh tools/version.ps1 0.99.1`.
 
 The release contains `api.jar`, `zygote.jar`, and `agent.zip`.
@@ -261,7 +261,7 @@ is how to see what a release would contain.
 
 `publishingType` in `build.gradle.kts` is `USER_MANAGED`, so an upload waits in
 the portal for somebody to press Publish. A Central artifact can never be
-deleted; change this to `AUTOMATIC` once a deployment has been seen to be
+deleted. Change this to `AUTOMATIC` once a deployment has been seen to be
 right, and raising the version is again the only thing that ships.
 
 Signing is a GPG key passed in as `SIGNING_KEY` and `SIGNING_PASSWORD`. Without

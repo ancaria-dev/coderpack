@@ -77,7 +77,7 @@ subprojects {
             }
         }
         // No repository block. Maven Central is not a repository a publish task
-        // writes to -- the Portal takes one signed bundle over its own API, and
+        // writes to. The Portal takes one signed bundle over its own API, and
         // that is what the aggregation at the root does. `publishToMavenLocal`
         // still works and is what a mod on this machine resolves.
     }

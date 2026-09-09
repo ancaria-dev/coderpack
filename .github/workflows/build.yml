@@ -106,7 +106,7 @@ jobs:
 
   # The API contract major is the same number in three repositories that cannot
   # import each other. Raising one and forgetting the others makes the Gradle
-  # plugin stamp mods with a major the loader then refuses -- which is the exact
+  # plugin stamp mods with a major the loader then refuses, which is the exact
   # failure the contract exists to prevent, one floor up. Coderpack owns the
   # number, so the check that they still agree lives here.
   api-contract:

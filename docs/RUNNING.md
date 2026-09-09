@@ -41,7 +41,7 @@ another `World.Phase.LOADED`.
 ```
 
 Paths resolve next to the executable, so no arguments are needed: mods are
-looked for one level up from the host, which is where they belong -- they are
+looked for one level up from the host, which is where they belong. They are
 the game's, not Coderpack's. `--agent`, `--dist`, `--mods` and `--java` override.
 
 ## Where the output is
@@ -84,7 +84,7 @@ agent says so on the console and carries on:
 
 ```
 [agent] !! this is not the game build Coderpack's addresses were found in.
-[agent] !! expected pureHD.exe 2.0.2.118, found Sacred.exe -- 20 of 20 hook
+[agent] !! expected pureHD.exe 2.0.2.118, found Sacred.exe. 20 of 20 hook
            sites hold different instructions (commitStats, expWrite, ...).
 [agent] !! hooking it anyway, at whatever those addresses now point at. Mods
            may not behave as expected.
@@ -139,7 +139,7 @@ Module names are the file names without the number prefix: `core`, `bus`,
 `run.cmd` passes its arguments through, so no rebuild is needed:
 
 ```
-run.cmd --only none        core, bus and names only -- no hooks but hero capture
+run.cmd --only none        core, bus and names only, no hooks but hero capture
 run.cmd --only health      that plus one module
 run.cmd --skip position    everything except one
 ```
