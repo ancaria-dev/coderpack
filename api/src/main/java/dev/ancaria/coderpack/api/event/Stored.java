@@ -7,6 +7,8 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 /** An item went into a creature's inventory. Read-only. */
+@Delivery.Unstable("Only one store path is hooked, so an item can reach"
+        + " a bag without this firing.")
 public final class Stored extends Event {
 
     private final Item item;

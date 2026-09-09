@@ -9,6 +9,8 @@ import javax.annotation.Nonnull;
  * {@link Phase#HERO_TERMINATED} is when the hero pointer stops being valid, so
  * anything holding player state should drop it there.
  */
+@Delivery.Unstable("Not every path into a phase is hooked, so a phase"
+        + " can be missed entirely.")
 public final class World extends Event {
 
     public enum Phase { LOADING, LOADED, HERO_LOADED, HERO_TERMINATED, DETACHED }

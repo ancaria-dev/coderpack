@@ -7,6 +7,7 @@ import java.util.Map;
  * sample -- the game has no cheap "player moved" writer, so the position is
  * read at points it already passes through often.
  */
+@Delivery.Hot
 public final class Position extends Event {
 
     public Position(Map<String, String> fields) {
