@@ -66,7 +66,7 @@ The commands have distinct jobs:
   global tables preserve their order from `mappings.json`.
 - `gradlew build` writes artifacts under `api/build/libs`,
   `zygote/build/libs`, and `api-kotlin/build/libs`. It also runs the zygote
-  JUnit tests.
+  and api-kotlin JUnit tests.
 - `python tools/hooksafe.py` exits with status 1 when a hook site is unusable.
   It also reports whether the selected binary matches
   `agent/signatures.json`.
@@ -266,6 +266,20 @@ lets a listener rewrite becomes a `var`, and everything else stays a `val`. So
 has a setter for one and not the other: the game keeps XOR-encoded mirrors of
 the total and resets a total it did not compute itself. Do not add a setter here
 that `api` does not already have.
+
+Those `var`s do not round-trip, and that is deliberate. Assigning one adds a
+rewrite to the map `Verdict` answers the host from; it does not touch the fields
+the event arrived with, so reading the property back still gives the game's own
+number, to this listener and to every later one. It is what `delta(x)` then
+`delta()` does in Java. Making the getter read the pending rewrite would be a
+better-behaved `var` and would make a Kotlin mod and a Java mod disagree about
+the same event. `PropertiesTest` pins the behavior.
+
+`api-kotlin/src/test` covers the parts a signature cannot: that an assignment
+reaches the rewrite map and a read does not see it, and that `once` unregisters
+on both sides of its race, including the case where the event arrives before
+`on` has returned the handle. `Fakes.kt` holds the stand-in bus, context and
+game. No test here reaches the loader or the game.
 
 `SacredMod.load()` is named `load` rather than `onLoad` because it cannot be
 called that. An extension receiver becomes the first JVM parameter, so

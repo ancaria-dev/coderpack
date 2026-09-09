@@ -18,6 +18,15 @@ import dev.ancaria.coderpack.api.event.Skill
 // and `Gold.current` is not, because the game keeps XOR-encoded mirrors of the
 // total and resets a total it did not compute itself to 1. The `val`s below are
 // the fields the API refuses to rewrite, and they stay `val` here.
+//
+// The one thing about these that has to be learned rather than guessed:
+// assigning does not change what the property reads. A read reports the number
+// the game is about to write. An assignment leaves that alone and adds a
+// rewrite, which the loader collects separately and sends back as the verdict.
+// So `gold.delta = x` and then `gold.delta` still reads the game's number, and
+// so does every later listener, exactly as `delta(x)` then `delta()` does in
+// Java. Reading the pending rewrite back instead would be a nicer `var` and a
+// Kotlin mod that disagrees with a Java one about the same event.
 
 /** Negative for a purchase, positive for loot. Rewrite this, never the total. */
 public inline var Gold.delta: Long

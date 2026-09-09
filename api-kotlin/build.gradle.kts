@@ -31,6 +31,18 @@ dependencies {
     // so `Game.player` below is declared `Player?` because the Java says so
     // rather than because somebody remembered.
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
+
+    // The tests need the API on the runtime classpath too: they build real
+    // events and read the rewrite map back off them, which is the half of a
+    // vetoable property no signature can check.
+    testImplementation(project(":api"))
+    testImplementation(kotlin("test"))
+    testImplementation(platform("org.junit:junit-bom:5.10.1"))
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 kotlin {

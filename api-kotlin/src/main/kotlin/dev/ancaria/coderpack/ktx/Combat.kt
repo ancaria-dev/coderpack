@@ -12,6 +12,9 @@ import dev.ancaria.coderpack.api.event.NearDeath
 //
 // MobHit's extensions reach MobDeath as well, which is a MobHit that finished
 // the job.
+//
+// `Damage.next` is a `var` with the asymmetry Progress.kt describes at length:
+// assigning asks for a value, and does not change what the property reads.
 
 /** "damage", "heal" or "clamp". */
 public inline val Damage.kind: String? get() = kind()
