@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p>A call blocks the calling thread until the agent answers. That is safe
  * only because commands are issued from the dispatch thread while the reader
- * thread keeps consuming replies -- if one thread did both, a command inside an
+ * thread keeps consuming replies. If one thread did both, a command inside an
  * event handler would deadlock.
  */
 final class GameLink implements Game {

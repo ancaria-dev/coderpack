@@ -80,7 +80,7 @@ class RangesTest {
         allows("[1,2),[3,4)", "3.0", true);
         allows("[1,2),[3,4)", "2.5", false);
         allows("[1,2), [3,4)", "3.9", true);
-        // Nothing said allows everything; an unreadable version allows nothing.
+        // Nothing said allows everything. An unreadable version allows nothing.
         allows("", "1", true);
         allows("[1,2)", "", false);
         allows("[1,2)", "x", false);

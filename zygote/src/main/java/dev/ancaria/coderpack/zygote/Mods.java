@@ -31,7 +31,7 @@ final class Mods {
     }
 
     /**
-     * @param enabled mod ids the launcher asked for; null means every jar in
+     * @param enabled mod ids the launcher asked for. Null means every jar in
      *                the directory, which is what a bare host run does
      */
     static void loadAll(Path directory, Path gameDir, Set<String> enabled,

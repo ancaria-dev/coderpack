@@ -8,9 +8,9 @@ import dev.ancaria.coderpack.api.event.Position;
 
 /**
  * Player state, kept current from the events that already carry it. Reads are
- * free; only writes cost a round-trip. That matters because a mod reacting to
- * damage would otherwise ask the game a question while the game thread is
- * stopped waiting for that same mod's verdict.
+ * free, and only writes cost a round-trip. That matters because a mod
+ * reacting to damage would otherwise ask the game a question while the game
+ * thread is stopped waiting for that same mod's verdict.
  */
 final class PlayerLink implements Player {
 

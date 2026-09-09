@@ -13,9 +13,10 @@ import java.util.concurrent.BlockingQueue;
  * Coderpack's entry point.
  *
  * <p>Two threads on purpose. The reader only parses and routes, so it is always
- * free to complete a command's reply; the dispatcher runs mod code, which may
- * block on a command. Doing both on one thread deadlocks the moment a mod calls
- * the game from inside an event handler -- which is the normal thing to do.
+ * free to complete a command's reply. The dispatcher runs mod code, which may
+ * block on a command. Doing both on one thread deadlocks the moment a mod
+ * calls the game from inside an event handler, which is the normal thing to
+ * do.
  */
 public final class Main {
 
@@ -33,10 +34,10 @@ public final class Main {
     public static void main(String[] args) throws Exception {
         Path mods = Path.of(argument(args, "--mods", "mods")).toAbsolutePath().normalize();
         // Mods live in <Sacred Gold>/mods, so the game folder is one level up.
-        // A mod writing a file needs that, not the working directory -- which
+        // A mod writing a file needs that, not the working directory, which
         // belongs to whoever started the host.
         Path game = mods.getParent() == null ? mods : mods.getParent();
-        // The launcher passes the ticked boxes; without it, everything loads.
+        // The launcher passes the ticked boxes. Without it, everything loads.
         String only = argument(args, "--enable", null);
         Set<String> enabled = only == null
                 ? null
@@ -70,7 +71,7 @@ public final class Main {
      * Ends the JVM rather than returning from main.
      *
      * <p>A mod is allowed to start threads, and one that starts a non-daemon
-     * thread -- a window, a timer, a server -- keeps this process alive forever
+     * thread (a window, a timer, a server) keeps this process alive forever
      * once main returns. That was not theoretical: the first mod to open a
      * JavaFX window left a JVM behind after every run, holding its own jar open
      * so the next build could not replace it. The host outlives nothing here,

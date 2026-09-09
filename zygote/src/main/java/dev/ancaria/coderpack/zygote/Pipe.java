@@ -8,8 +8,8 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * stdin carries frames from the host, stdout carries verdicts and commands back.
- * Nothing else may write to stdout -- a stray println would be parsed as a
- * frame. Mod logging goes to stderr, which the host prints as-is.
+ * Nothing else may write to stdout, because a stray println would be parsed
+ * as a frame. Mod logging goes to stderr, which the host prints as-is.
  */
 public final class Pipe {
 

@@ -10,9 +10,9 @@ import java.util.Map;
  *
  * <p>Three rules, in this order. A cancel wins over every rewrite, because a
  * write that never happens has no value to set. Otherwise the rewrites go out
- * as {@code set.<field>}, one per field, whoever wrote them last -- that is
- * priority order doing its job, not a race. With neither, the game keeps its
- * own value.
+ * as {@code set.<field>}, one per field, whoever wrote them last. That is
+ * priority order doing its job rather than a race. With neither, the game
+ * keeps its own value.
  *
  * <p>Nothing a MONITOR listener did is in here: the bus watched it and dropped
  * the write before this ever saw the event.

@@ -13,7 +13,7 @@ import java.util.List;
  * the one NeoForge writes in a {@code mods.toml}:
  *
  * <pre>
- * [1,2)        1 or newer, below 2 -- one major, the usual thing to write
+ * [1,2)        1 or newer, below 2 (one major), the usual thing to write
  * [1.0,)       1.0 or newer, no upper end
  * (,1.5]       anything up to and including 1.5
  * [1.2]        that version and nothing else
@@ -170,7 +170,7 @@ final class Ranges {
                 return;
             }
             if (text.charAt(0) != '[' && text.charAt(0) != '(') {
-                // A bare version. Exactly that one -- see the note above.
+                // A bare version, meaning exactly that one. See the note above.
                 Version only = new Version(text);
                 if (!only.known()) {
                     throw new IllegalArgumentException("“" + text + "” is neither a version"

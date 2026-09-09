@@ -13,14 +13,14 @@ import java.nio.file.Path;
  * the code was compiled against, and it decides whether the mod can run at all:
  * a method that is no longer there is not a smaller problem on a newer release.
  * {@code loader} is the launcher's own version, which a mod names when it wants
- * a fix from a particular release; most mods have no opinion about it and should
- * not have to write one down. Both are ranges, in the notation {@link Ranges}
- * documents.
+ * a fix from a particular release. Most mods have no opinion about it and
+ * should not have to write one down. Both are ranges, in the notation
+ * {@link Ranges} documents.
  *
  * <p>A missing {@code api} is a mismatch, not a pass. The Gradle plugin writes
- * the field, so every mod built with the toolchain has it; a descriptor without
- * one was written by hand or by a plugin older than the field, and neither says
- * anything about which API the code inside calls. Assuming it is current is the
+ * the field, so every mod built with the toolchain has it. A descriptor
+ * without one was written by hand or by a plugin older than the field, and
+ * neither says anything about which API the code inside calls. Assuming it is current is the
  * one guess that produces the failure this check exists to stop: a mod that
  * loads, registers its listeners, and throws {@code NoSuchMethodError} in the
  * middle of a dispatch. Refusing is loud, it names the jar, and the fix is a
@@ -28,7 +28,7 @@ import java.nio.file.Path;
  *
  * <p>A missing {@code loader} is a pass, and so is a loader version this process
  * could not find out. The launcher writes {@code <game>/launcher/VERSION} and is
- * also the thing that checks the range before a mod is ever ticked; a host
+ * also the thing that checks the range before a mod is ever ticked. A host
  * started by hand out of a checkout has no such file, and refusing every mod
  * over its absence would take the loader away from the one person who is
  * definitely debugging it.
@@ -43,7 +43,7 @@ final class Compat {
 
     /**
      * The loader release in this game folder, or empty when there is none to
-     * read -- a checkout, or a folder somebody assembled by hand.
+     * read, such as a checkout or a folder somebody assembled by hand.
      */
     static String version(Path gameDir) {
         try {

@@ -57,9 +57,10 @@ final class Registry {
     }
 
     /**
-     * Never null: an event with no SDK type becomes an {@link Unknown} carrying
+     * Never null. An event with no SDK type becomes an {@link Unknown} carrying
      * the wire name. The agent is allowed to run ahead of the API, and a mod
-     * that subscribes to {@code Event} -- a tracer -- has to see those too.
+     * that subscribes to {@code Event}, a tracer for instance, has to see those
+     * too.
      */
     static Event build(Frame frame) {
         Function<Map<String, String>, Event> factory = TYPES.get(frame.name());

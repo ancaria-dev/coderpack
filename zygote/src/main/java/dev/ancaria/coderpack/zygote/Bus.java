@@ -23,13 +23,13 @@ import java.util.function.Consumer;
 /**
  * Listener registry and dispatch.
  *
- * <p>Order is {@link Priority} order -- FIRST, NORMAL, LAST, MONITOR -- and
+ * <p>Order is {@link Priority} order (FIRST, NORMAL, LAST, MONITOR) and
  * within one step the order the mod registered its listeners, whether it did
  * that with {@link Subscribe} or with {@code events.on(...)}. Two rules keep
  * the last mod to run from simply overwriting what the others decided: a
  * listener asking for {@code ignoreCancelled} is not called once the event is
  * cancelled, and a MONITOR listener is watched, so nothing it cancels or
- * rewrites reaches the verdict. A cancel by itself stops nothing -- see
+ * rewrites reaches the verdict. A cancel by itself stops nothing. See
  * {@link Veto}.
  *
  * <p>A listener that throws is not allowed to take the game with it: the
@@ -38,8 +38,8 @@ import java.util.function.Consumer;
  *
  * <p>Events arrive one per frame, so dispatch is the one loop here that has to
  * be cheap. It costs one map lookup and no allocation: listeners are bucketed
- * by the type they declared, and the buckets an event class needs -- its own
- * and every supertype up to {@link Event} -- are merged into priority order
+ * by the type they declared, and the buckets an event class needs, its own
+ * and every supertype up to {@link Event}, are merged into priority order
  * once and kept. Registering or dropping a listener throws that away and the
  * next event of each type rebuilds it.
  *
@@ -52,19 +52,19 @@ import java.util.function.Consumer;
  * free.
  *
  * <p>Both, by keeping the two sides apart. {@link #declared}, the mutable side,
- * is plain collections behind {@link #lock} -- fine, because nothing takes that
- * lock per frame. {@link #resolved}, the side dispatch reads, is an immutable
+ * is plain collections behind {@link #lock}, which is fine because nothing
+ * takes that lock per frame. {@link #resolved}, the side dispatch reads, is an immutable
  * map of immutable lists published through one volatile field and replaced
  * whole rather than edited.
  *
- * <p>Copy-on-write, not copy-on-read, and that is the whole reason for the
- * shape: the merged list for an event class is built once and then reused for
- * every frame of that class, so making it immutable costs nothing, while
- * copying it per dispatch -- what a synchronized list or a defensive copy would
- * amount to -- is exactly the per-frame allocation this design exists to avoid.
+ * <p>Copy-on-write rather than copy-on-read, and that is the whole reason for
+ * the shape. The merged list for an event class is built once and then reused
+ * for every frame of that class, so making it immutable costs nothing, while
+ * copying it per dispatch (what a synchronized list or a defensive copy would
+ * amount to) is exactly the per-frame allocation this design exists to avoid.
  * A dispatch that is running keeps iterating whichever snapshot it started
- * with; a registration from another thread cannot be seen half applied, because
- * there is no half.
+ * with. A registration from another thread cannot be seen half applied,
+ * because there is no half.
  */
 final class Bus {
 
@@ -73,7 +73,7 @@ final class Bus {
     /**
      * The one shape every listener is called through. A {@link MethodHandle} is
      * signature-polymorphic, so {@code invokeExact} demands the static types at
-     * the call site and the handle's own type to match to the letter -- hence
+     * the call site and the handle's own type to match to the letter. Hence
      * one type, asType'd onto every handle at registration, and one call site.
      */
     private static final MethodType CALL = MethodType.methodType(void.class, Event.class);
@@ -141,7 +141,7 @@ final class Bus {
      */
     private volatile Map<Class<?>, List<Listener>> resolved = Map.of();
 
-    /** Registration order -- and registration can come from more than one thread. */
+    /** Registration order, and registration can come from more than one thread. */
     private final AtomicInteger registrations = new AtomicInteger();
 
     void register(String mod, Object target) {
@@ -159,7 +159,7 @@ final class Bus {
             }
             // A public method on a package-private class is not reachable by
             // reflection from here, and keeping listener classes package-private
-            // is the natural way to write a mod -- so ask for access explicitly.
+            // is the natural way to write a mod, so ask for access explicitly.
             // unreflect then inherits that permission instead of checking again.
             MethodHandle call;
             try {
@@ -286,7 +286,7 @@ final class Bus {
 
     /**
      * Takes a listener off. Idempotent, safe from any thread, and safe from
-     * inside a dispatch -- the loop reads {@code dead} again before each call,
+     * inside a dispatch. The loop reads {@code dead} again before each call,
      * so a listener it has not reached yet is not reached.
      */
     private void drop(Listener listener) {

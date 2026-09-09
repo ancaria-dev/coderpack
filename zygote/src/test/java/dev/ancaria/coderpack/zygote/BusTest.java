@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The three dispatch rules -- order, ignoreCancelled and MONITOR -- through both
+/** The three dispatch rules (order, ignoreCancelled and MONITOR) through both
  *  registration styles, plus the type index that has to leave all three alone. */
 class BusTest {
 
@@ -165,12 +165,12 @@ class BusTest {
         bus.register("wide", listener);
         bus.dispatch(gold());
         bus.dispatch(new MobHit(Map.of("name", "TYPE_NPC_GHUL01")));
-        // Gold is a Veto is an Event; MobHit is only an Event.
+        // Gold is a Veto is an Event. MobHit is only an Event.
         //
         // Which of the two Gold lines comes first is deliberately not asserted.
         // Both methods are NORMAL, so their order is their registration order,
         // and register() registers them in the order Class.getMethods() hands
-        // them back -- which the JDK does not specify and which really does
+        // them back, which the JDK does not specify and which really does
         // come out differently between runs of the same class file. Order
         // inside one priority is pinned by the test below instead, where the
         // registrations are made one at a time.
@@ -353,7 +353,7 @@ class BusTest {
         List<String> seen = Collections.synchronizedList(new ArrayList<>());
         CountDownLatch inside = new CountDownLatch(1);
         CountDownLatch gone = new CountDownLatch(1);
-        // The dispatch parks inside the first listener; the other thread takes
+        // The dispatch parks inside the first listener. The other thread takes
         // the second one off while it is parked there.
         events.on(Gold.class, Priority.FIRST, e -> {
             seen.add("first");

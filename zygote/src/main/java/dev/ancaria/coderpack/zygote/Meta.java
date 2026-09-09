@@ -21,20 +21,21 @@ import java.util.Map;
  * repository = "https://github.com/ancaria-dev/mods"
  * </pre>
  *
- * <p>{@code id} is the handle -- lowercase, hyphens, what the launcher writes
- * into its enabled list. {@code name} and {@code description} are the two
+ * <p>{@code id} is the handle, lowercase and hyphenated, and what the
+ * launcher writes into its enabled list. {@code name} and {@code description} are the two
  * things a player reads, so they are written like prose and not like keys.
  * {@code api} is the range of API contracts the mod was built for and
- * {@code loader} the range of launcher releases it wants; the Gradle plugin
+ * {@code loader} the range of launcher releases it wants. The Gradle plugin
  * writes both and {@link Compat} decides what to do with them.
  *
  * <p>An unreadable {@code api} is still a parsed descriptor. A mod refused for
  * its API has to keep its name and its description, because the launcher lists
- * it and tells the player why it is off; dropping it here would make it
+ * it and tells the player why it is off. Dropping it here would make it
  * disappear instead.
  *
- * Only {@code key = "value"} and a flat array of strings are understood --
- * enough for a descriptor, and it saves pulling a TOML parser into the loader.
+ * Only {@code key = "value"} and a flat array of strings are understood. That
+ * is enough for a descriptor, and it saves pulling a TOML parser into the
+ * loader.
  */
 record Meta(String id, String name, String version, String description,
             String entrypoint, String api, String loader, List<String> authors,

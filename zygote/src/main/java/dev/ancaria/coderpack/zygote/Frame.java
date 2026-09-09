@@ -27,7 +27,7 @@ public record Frame(String verb, long seq, String name, Map<String, String> fiel
         } catch (NumberFormatException e) {
             return null;
         }
-        // A token carrying '=' is a field, never the name -- frames without a
+        // A token carrying '=' is a field, never the name. Frames without a
         // name exist, and treating the third token as one loses their fields.
         String name = "";
         Map<String, String> fields = new LinkedHashMap<>();
@@ -83,7 +83,7 @@ public record Frame(String verb, long seq, String name, Map<String, String> fiel
                     i += 2;
                     continue;
                 } catch (NumberFormatException ignored) {
-                    // not an escape after all; keep the literal '%'
+                    // not an escape after all, so keep the literal '%'
                 }
             }
             out.append(c);
