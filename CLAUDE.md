@@ -246,7 +246,10 @@ current one with no argument, or raises it everywhere it is written
 `pwsh tools/version.ps1 0.99.1`.
 
 The release contains `api.jar`, `zygote.jar`, and `agent.zip`.
-`agent.zip` already includes `gen/addr.js`. CI also uploads both Java modules
+`agent.zip` already includes `gen/addr.js`. It is what `protocol` builds itself
+around when it has no checkout of this repository beside it, which is the only
+consumer of that asset now: the launcher no longer unpacks agent scripts into a
+game folder. CI also uploads both Java modules
 to Maven Central, which is where a mod build resolves
 `dev.ancaria.coderpack:api` from. The JARs and agent archive are packed only
 for a new version on `master`. The Central upload runs before the GitHub
@@ -353,15 +356,20 @@ These repositories are siblings of coderpack under `ancaria-dev`:
   `python mappings.generator.py --check` in that repository to reject stale
   JSON. Coderpack CI runs it before address generation. The registry’s
   `hooked` list defines the sites checked by `tools/hooksafe.py`.
-- `protocol` owns the Rust host. `protocol/src/agent.rs` bundles `agent/src`,
-  injects it, starts the JVM, enforces the verdict deadline, and implements
-  `--skip`, `--only`, `--no-hook`, `--no-ask`, and `--trace`. Its bundler
-  tests use a fixture agent. Its end-to-end test can use built coderpack JARs
-  from this sibling checkout or the local Maven repository.
-- `launcher` owns packaging. `launcher/tools/build.ps1` copies
-  `agent/src/*` and both JARs when coderpack is available beside it. Otherwise
-  it downloads `agent.zip`, `api.jar`, and `zygote.jar` from the coderpack
-  release pinned in `dependencies.json`.
+- `protocol` owns the Rust host. Its `build.rs` minifies `agent/src` into
+  `protocol.exe`, and `protocol/src/agent.rs` assembles the injected script from
+  it in memory, starts the JVM, enforces the verdict deadline, and implements
+  `--skip`, `--only`, `--no-hook`, `--no-ask`, and `--trace`. The host takes the
+  agent from `$PROTOCOL_AGENT`, then this sibling, then the `agent.zip` of the
+  release pinned in its own `dependencies.json`, so a change here reaches a
+  player through a release of that repository. Its folder-reading bundler tests
+  use a fixture agent. Its end-to-end test can use built coderpack JARs from
+  this sibling checkout or the local Maven repository.
+- `launcher` owns packaging. `launcher/tools/build.ps1` copies both JARs when
+  coderpack is available beside it and points the host build at `agent/src`.
+  Otherwise it downloads `api.jar` and `zygote.jar` from the coderpack release
+  pinned in `dependencies.json`. It stages no agent: a `protocol.exe`, built or
+  downloaded, already has one inside it.
 - `mods` supplies the mod JARs used by `tests/replay.py`.
 - `research` contains the probes and static analysis that established the
   addresses and hook behavior.

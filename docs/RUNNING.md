@@ -36,13 +36,19 @@ another `World.Phase.LOADED`.
 ## Where it goes in the game folder
 
 ```
-<Sacred Gold>/launcher/  protocol.exe, the jars, agent/, run.cmd
+<Sacred Gold>/launcher/  protocol.exe, the jars, run.cmd
 <Sacred Gold>/mods/       the mod jars
 ```
 
+No agent folder: the modules are minified into `protocol.exe` when the host is
+built, and the injected script is assembled in memory. To run the host against
+this checkout instead, point it at the sources with
+`--agent <coderpack>\agent\src`. That reads the files as they are, so an edit
+takes effect on the next host start with no rebuild.
+
 Paths resolve next to the executable, so no arguments are needed: mods are
 looked for one level up from the host, which is where they belong. They are
-the game's, not Coderpack's. `--agent`, `--dist`, `--mods` and `--java` override.
+the game's, not Coderpack's. `--dist`, `--mods` and `--java` override the rest.
 
 ## Where the output is
 

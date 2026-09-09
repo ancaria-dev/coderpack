@@ -213,7 +213,8 @@ Auf dem Branch `master` liest die CI `version` aus `gradle.properties`. Gibt es
 auf dem Remote noch keinen Tag `v<version>`, lädt sie API und zygote als ein
 signiertes Bündel über die Portal-API zu Maven Central hoch, legt `api.jar`,
 `zygote.jar` und `agent.zip` als Release-Artefakte ab und erstellt den Tag.
-`agent.zip` enthält bereits die erzeugte Adresstabelle. Eine höhere
+`agent.zip` enthält bereits die erzeugte Adresstabelle und ist das, was der Host
+in sich einbettet, wenn kein coderpack-Checkout neben ihm liegt. Eine höhere
 Versionsnummer löst daher beim nächsten Build auf `master` ein Release aus.
 
 Der Upload veröffentlicht noch nichts: er wartet im Portal darauf, dass jemand

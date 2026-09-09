@@ -183,7 +183,8 @@ On `master`, CI publishes only when the remote has no `v<version>` tag for the
 version in `gradle.properties`. It uploads the API and zygote artifacts to
 Maven Central as one signed bundle over the Portal API, attaches `api.jar`,
 `zygote.jar`, and `agent.zip` to a GitHub release, then creates the tag. The
-generated address table is already inside `agent.zip`.
+generated address table is already inside `agent.zip`, which is what the host
+builds itself around when it has no coderpack checkout beside it.
 
 The Central upload does not publish by itself: it waits in the portal for
 somebody to press Publish. A Central artifact can never be deleted, so the
