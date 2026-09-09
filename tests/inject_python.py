@@ -3,7 +3,7 @@
 Isolates one question a game restart can otherwise not answer: is a crash caused
 by the agent's hooks, or by the frida version the host links?  The host embeds
 frida-core 17.9.5 (whatever the devkit shipped), while frida-python here is
-whatever is installed -- the same one the original research hooks ran under.
+whatever is installed, the same one the original research hooks ran under.
 
     python tests\inject_python.py [--only health] [--skip gold]
 
@@ -20,7 +20,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 AGENT = ROOT / "agent" / "src"
 
 # The executable names live in tools/, beside everything else that has to know
-# where the game is; this import is the only reason that folder is on the path.
+# where the game is. This import is the only reason that folder is on the path.
 sys.path.insert(0, str(ROOT / "tools"))
 import game  # noqa: E402
 

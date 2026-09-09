@@ -9,7 +9,7 @@ Order, most specific first:
 
     1. a path on the command line
     2. $CODERPACK_MAPPINGS
-    3. ../mappings, the sibling checkout -- first because somebody editing the
+    3. ../mappings, the sibling checkout, first because somebody editing the
        registry expects their edit to be the one that gets used
     4. the copy on GitHub, at the ref in .mappings-ref, cached under build/
 

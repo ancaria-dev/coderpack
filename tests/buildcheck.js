@@ -5,7 +5,7 @@
 // 10-core.js decides at attach whether the module it is looking at is the
 // binary the addresses were found in, and warns when it is not.  The failure
 // it exists to catch is silent, so it is worth knowing that the check itself
-// still fires -- and the only other way to find out is to install a stock
+// still fires, and the only other way to find out is to install a stock
 // Sacred.exe and start the game.
 //
 // Frida runs QuickJS and the agent shares one scope, so the harness is the
@@ -46,7 +46,7 @@ function fakeGame(moduleName, bytesAt) {
 
 // Enough NativePointer for core to load: it adds offsets, reads bytes and asks
 // whether a pointer is null.  Anything it does with the hero is unreachable
-// here -- nothing calls back into the callbacks the harness registers.
+// here, because nothing calls back into the callbacks the harness registers.
 function pointer(game, value) {
     return {
         add: (offset) => pointer(game, value + Number(offset)),
@@ -109,7 +109,7 @@ check("the warning says what it means for mods",
       warning.includes("Mods may not behave as expected"));
 
 // A binary too small to hold these addresses at all: every read faults.  The
-// check has to survive that -- crashing the game it is warning about would be
+// check has to survive that.  Crashing the game it is warning about would be
 // worse than not warning.
 const empty = { name: "Game.exe", memory: new Map() };
 for (const name of ["hpDamage", "goldDelta"]) {

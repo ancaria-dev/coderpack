@@ -3,7 +3,7 @@
 This stands in for the host, which means answering commands as well as sending
 events: a mod that builds a table at startup asks the game for type ids, and
 without a reply it would sit there until its own timeout.  Answering them is
-what makes the interesting half testable -- that a mod's decision comes back as
+what makes the interesting half testable: that a mod's decision comes back as
 the right verdict, on a canned type table nobody has to launch Sacred for.
 
 The agent's side (does the game really commit that value) can only be checked
@@ -27,7 +27,7 @@ def jars():
         libs = sorted((ROOT / part / "build" / "libs").glob(f"{part}-*.jar"))
         libs = [j for j in libs if not j.stem.endswith(("-sources", "-javadoc"))]
         if not libs:
-            raise SystemExit("run `gradlew jar` first -- no " + part + " jar")
+            raise SystemExit("no " + part + " jar. Run `gradlew jar` first")
         found.append(libs[-1])
     return found
 
@@ -35,7 +35,7 @@ def jars():
 def mods(argv):
     """Mod jars to run against.
 
-    They are built by their own repository, so a path is accepted; without one
+    They are built by their own repository, so a path is accepted. Without one
     this looks for the sibling checkout's build output.
     """
     for candidate in list(argv) + [ROOT.parent / "mods"]:
@@ -88,7 +88,7 @@ SCRIPT = [
     ("ASK 8 item.pickup ref=1334 type=6001 "
      "name=TYPE_SMOVE_UPGRADE_HARDHIT_SERA level=1 min=1 atk=0 prot=0 pct=21 "
      "price=6 mods=22:1,807:10 player=1", "END 8 ok=1"),
-    # Now the same Daemon rune becomes a copy of it -- type, price, level,
+    # Now the same Daemon rune becomes a copy of it: type, price, level,
     # minimum level and, the part that matters, the modifier list.
     ("ASK 9 item.pickup ref=858 type=6100 "
      "name=TYPE_SMOVE_UPGRADE_DEM_ATTACKE level=1 min=1 atk=0 prot=0 pct=21 "

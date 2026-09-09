@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     gradle.properties is the source of truth. Everywhere else that repeats the
-    number by hand -- the Javadoc in Api.java, the three READMEs -- gets the
+    number by hand (the Javadoc in Api.java, the three READMEs) gets the
     same literal replacement, so a release does not depend on remembering
     which files happen to say "0.99.0" today.
 
@@ -46,7 +46,7 @@ foreach ($path in $targets) {
     $text = Get-Content -Path $path -Raw
     $new = [regex]::Replace($text, $pattern, $Version)
     if ($new -eq $text) {
-        Write-Warning "$current not found in $path -- left untouched"
+        Write-Warning "$current not found in $path, left untouched"
         continue
     }
     Set-Content -Path $path -Value $new -NoNewline

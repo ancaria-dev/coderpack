@@ -1,7 +1,7 @@
 """Refuses hook sites a trampoline would corrupt.
 
 Frida replaces the instruction at a hook with a five-byte jump.  If the
-instruction is shorter, the jump spills onto the next one -- and if any branch
+instruction is shorter, the jump spills onto the next one, and if any branch
 in the binary lands in that spill, the game jumps into the middle of the
 trampoline and dies.
 
@@ -106,8 +106,8 @@ def write_signatures(found, exe):
 def compare_signatures(found, exe):
     """Whether the binary in front of us is still the one the agent expects."""
     if not SIG_FILE.is_file():
-        return ("agent/signatures.json is missing -- "
-                "run tools/hooksafe.py --signatures against the HD wrapper")
+        return ("agent/signatures.json is missing. "
+                "Run tools/hooksafe.py --signatures against the HD wrapper")
     expected = json.loads(SIG_FILE.read_text(encoding="utf-8"))
     known = expected["sig"]
     differ = sorted(name for name, sig in known.items() if found.get(name) != sig)
@@ -116,7 +116,7 @@ def compare_signatures(found, exe):
         return f"signatures: all {len(known)} sites match {build}"
     shown = ", ".join(differ[:4]) + (", ..." if len(differ) > 4 else "")
     return (f"signatures: {len(differ)} of {len(known)} sites differ from "
-            f"{build} ({shown}) -- {exe.name} {file_version(exe)} is a "
+            f"{build} ({shown}). {exe.name} {file_version(exe)} is a "
             f"different build, and the agent will say so at attach")
 
 
@@ -126,12 +126,12 @@ def main():
     if rewrite:
         argv.remove("--signatures")
     where = pathlib.Path(argv[0]) if argv else DEFAULT_DIR
-    # An argument may name the folder or the executable itself; both are what
+    # An argument may name the folder or the executable itself. Both are what
     # somebody has to hand.
     exe = where if where.is_file() else game.find(where)
     if exe is None:
         print(f"skipped: no game in {where} "
-              f"({game.names()}) -- pass the path to check")
+              f"({game.names()}). Pass the path to check")
         return 0
 
     config = paths.registry()
@@ -142,13 +142,13 @@ def main():
     md = Cs(CS_ARCH_X86, CS_MODE_32)
     md.detail = True
     # Without this, linear disassembly stops dead at the first byte it cannot
-    # decode -- and .text is full of data.  A silent early stop makes this check
+    # decode, and .text is full of data.  A silent early stop makes this check
     # pass everything, which is worse than not having it.
     md.skipdata = True
 
     # How many bytes each hook really costs: Frida relocates WHOLE instructions,
     # so it takes instructions from the site until it has at least five bytes.
-    # A fixed five- or six-byte window under-reports -- `cmp` plus a rel32 `je`
+    # A fixed five- or six-byte window under-reports: `cmp` plus a rel32 `je`
     # is eight, and the two bytes past a naive window are exactly where a branch
     # was landing.
     patched = {}
@@ -166,7 +166,7 @@ def main():
     fatal = []
     risky = []
     # Anything the binary `call`s is a function entry.  Frida is at its safest
-    # there -- a real return address, a prologue to relocate -- so the hazards
+    # there, with a real return address and a prologue to relocate, so the hazards
     # below that are about relocating mid-function code do not apply.
     entries = set()
     for insn in md.disasm(body, start):
@@ -221,7 +221,7 @@ def main():
     # game's.  Whether that is what broke them is not proven, but the two sites
     # in AddGold that made the game return with a destroyed callee-saved register
     # were both of this shape, and neither had any other feature in common.  Not
-    # fatal on its own -- prefer a function entry when one is reachable.
+    # fatal on its own, but prefer a function entry when one is reachable.
     stacky = []
     for site, end in patched.items():
         offset = site - start
@@ -239,7 +239,7 @@ def main():
     # the trampoline.  The level write is why this check exists: `mov edx,[ebx+4]`
     # three bytes before it, `cmp [edx+0xc],0x10` twenty bytes after, and the game
     # died on every load from a save while a fresh character was fine.  Whether
-    # the trampoline is what loses the register is not proven -- but three sites
+    # the trampoline is what loses the register is not proven, but three sites
     # have now failed with a value in flight across them and none without.
     #
     # Registers the hooked instruction itself uses are not counted: a hook whose
@@ -254,7 +254,7 @@ def main():
     # skipdata hands back a pseudo-instruction for every byte it could not
     # decode, and asking one of those which registers it touches raises. .text
     # is full of data in any build, so this is the difference between a report
-    # and a traceback on an unfamiliar binary -- which is now a thing somebody
+    # and a traceback on an unfamiliar binary, which is now a thing somebody
     # will point this at.
     def accessed(insn):
         return (set(), set()) if insn.id == 0 else insn.regs_access()
