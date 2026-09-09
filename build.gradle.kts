@@ -7,11 +7,16 @@ plugins {
     // one signed bundle. It creates no publications of its own, which is why
     // the blocks below are unchanged from when this published nowhere.
     id("com.gradleup.nmcp.aggregation") version "1.6.2"
+    // Applied by :api-kotlin, not here: the root and the other two modules are
+    // Java. Declared at this level because a version is only allowed to be
+    // named once in a build, and the number is the one the scaffolder writes
+    // into a generated Kotlin mod.
+    kotlin("jvm") version "2.4.10" apply false
 }
 
-// Both modules are published, both are plain Java, and both describe themselves
-// the same way. Keeping that here rather than duplicating it twice means the
-// coordinates and the licence cannot drift apart between them.
+// All three modules are published and describe themselves the same way. Keeping
+// that here rather than duplicating it three times means the coordinates and the
+// licence cannot drift apart between them.
 // The signing key, read once here rather than in each subproject. Absent on a
 // developer's machine, which is the point of asking a provider rather than
 // requiring it: `publishToMavenLocal` has to keep working with no key at all.
@@ -37,7 +42,10 @@ subprojects {
     }
 
     // The javadoc jar exists so an IDE can show the doc comments, not so a
-    // doclint run can list every getter that has none.
+    // doclint run can list every getter that has none. For :api-kotlin it comes
+    // out empty, because javadoc reads Java; the KDoc travels in the sources jar
+    // beside it, which is what an IDE opens anyway. Central refuses a
+    // publication without the file, not without content in it.
     tasks.withType<Javadoc>().configureEach {
         (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
     }
@@ -99,6 +107,7 @@ subprojects {
 dependencies {
     nmcpAggregation(project(":api"))
     nmcpAggregation(project(":zygote"))
+    nmcpAggregation(project(":api-kotlin"))
 }
 
 nmcpAggregation {
