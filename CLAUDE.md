@@ -13,6 +13,10 @@ The runtime has strict boundaries:
   x86 instructions and exchanges messages with the host.
 - `api/` is the Java contract used to compile mods. It is published as
   `dev.ancaria.coderpack:api` and intentionally has no runtime dependencies.
+- `api-kotlin/` is that same contract said in Kotlin, published as
+  `dev.ancaria.coderpack:api-kotlin`. It is optional sugar, not a second API:
+  every declaration forwards to a method on `api`, and the loader does not
+  provide it, so a mod that wants it packs it.
 - `zygote/` is the JVM side of the wire. It is published as
   `dev.ancaria.coderpack:zygote`, has `api` as a runtime dependency, loads mod
   JARs, and dispatches events. The release ships the two thin JARs separately.
@@ -34,6 +38,7 @@ responsibilities into the agent, API, or zygote.
 | `agent/src/gen/addr.js` | Gitignored output from `tools/addr.py`. It contains addresses and the build fingerprint. |
 | `agent/signatures.json` | The bytes found at each hook site in a real `pureHD.exe`. |
 | `api/` | Events, handles, and interfaces exposed to mods. |
+| `api-kotlin/` | Kotlin extensions over `api`, in package `dev.ancaria.coderpack.ktx`. One file per group of events. |
 | `zygote/` | Mod loading and JVM-side protocol handling. `Ranges` defines version syntax and `Compat` applies its two compatibility checks. |
 | `tools/` | `addr.py` generates addresses, `hooksafe.py` checks hook sites and writes signatures, and `paths.py` locates mappings. |
 | `tests/` | `replay.py` and `buildcheck.js` run without the game. `inject_python.py` runs the agent through frida-python. |
@@ -59,8 +64,9 @@ The commands have distinct jobs:
 - `python tools/addr.py` writes `agent/src/gen/addr.js`. The current registry
   produces 26 RVAs, 3 globals, and 20 site signatures. The generated RVA and
   global tables preserve their order from `mappings.json`.
-- `gradlew build` writes artifacts under `api/build/libs` and
-  `zygote/build/libs`. It also runs the zygote JUnit tests.
+- `gradlew build` writes artifacts under `api/build/libs`,
+  `zygote/build/libs`, and `api-kotlin/build/libs`. It also runs the zygote
+  JUnit tests.
 - `python tools/hooksafe.py` exits with status 1 when a hook site is unusable.
   It also reports whether the selected binary matches
   `agent/signatures.json`.
@@ -71,6 +77,8 @@ The commands have distinct jobs:
 The Java release target is 21. The build uses `options.release` instead of a
 toolchain, so Gradle does not download a JDK. The wrapper pins Gradle 9.7.1.
 Configuration cache is enabled with `org.gradle.configuration-cache.problems=fail`.
+`api-kotlin` sets `jvmTarget = JVM_21` separately, because the Kotlin compiler
+does not read `options.release`.
 
 ## Address generation and build identity
 
@@ -218,6 +226,55 @@ annotations remain in API bytecode for IDEs, but the dependency does not enter
 the published POM or a mod’s fat JAR. A mod can compile against the API without
 adding JSR 305.
 
+## The Kotlin API
+
+`api-kotlin` is `dev.ancaria.coderpack:api-kotlin`, published from this
+repository at the same version as `api`. It adds no capability. Every
+declaration in it forwards to a method on `api`, and most are `inline`, so what
+a mod ends up with in bytecode is the call it would have written by hand.
+
+Three constraints decide its shape, and each one is load-bearing:
+
+- The package is `dev.ancaria.coderpack.ktx`, **not** anything under
+  `dev.ancaria.coderpack.api`. This module is packed inside a mod jar, and the
+  verifier's `Contents` check refuses, as an error, any class under
+  `dev/ancaria/coderpack/api/` in a mod jar. A package under the API's would
+  make every Kotlin mod unbuildable.
+- `api` is a `compileOnlyApi` dependency. Gradle module metadata then puts it on
+  a consumer's compile classpath and keeps it off the runtime one, which is the
+  classpath Shadow packs, so the loader's own API never travels inside a mod.
+  The published POM writes that scope as `compile` because Maven has no
+  equivalent; a Maven build would have to declare `api` as `provided` itself.
+- The loader does not provide this module. `zygote` neither knows nor loads it,
+  and neither the launcher nor a release stages it. A mod that wants it declares
+  it as `implementation` and it is packed, next to the Kotlin standard library
+  that mod already carries.
+
+The contents, one file per group:
+
+| File | What it adds |
+|---|---|
+| `Mod.kt` | `SacredMod`, an abstract class that stores the context and hands it to `Context.load()` as a receiver. Deliberately the same simple name as the interface. |
+| `Events.kt` | `on<E> { }`, the `events { }` registration block, `once<E> { }`, and `Handle` combinators. |
+| `Context.kt` | `id`, `game`, and `gameDir` as properties. Deliberately no `events` property; the block of that name would make `context.events { }` an overload question. |
+| `Event.kt` | `event["key"]`, `long`, `int`, `fields`, and `Veto.canceled`. |
+| `Session.kt`, `Progress.kt`, `Combat.kt`, `Items.kt`, `Game.kt` | Properties for the events and entities in each group. |
+
+The rule for a property is the rule the API already applies. A field the API
+lets a listener rewrite becomes a `var`, and everything else stays a `val`. So
+`Gold.delta` is a `var` and `Gold.current` is not, for the same reason the Java
+has a setter for one and not the other: the game keeps XOR-encoded mirrors of
+the total and resets a total it did not compute itself. Do not add a setter here
+that `api` does not already have.
+
+`SacredMod.load()` is named `load` rather than `onLoad` because it cannot be
+called that. An extension receiver becomes the first JVM parameter, so
+`Context.onLoad()` and the interface's `onLoad(Context)` are one signature.
+
+Raising `Api.VERSION` does not require a change here. This module compiles
+against the API and breaks with it, so it moves when the API's own artifact
+version moves, which is every release.
+
 ## Replay test requirements
 
 `tests/replay.py` requires built API and zygote JARs under `*/build/libs` and
@@ -249,10 +306,12 @@ The release contains `api.jar`, `zygote.jar`, and `agent.zip`.
 `agent.zip` already includes `gen/addr.js`. It is what `protocol` builds itself
 around when it has no checkout of this repository beside it, which is the only
 consumer of that asset now: the launcher no longer unpacks agent scripts into a
-game folder. CI also uploads both Java modules
+game folder. CI also uploads all three Java modules
 to Maven Central, which is where a mod build resolves
-`dev.ancaria.coderpack:api` from. The JARs and agent archive are packed only
-for a new version on `master`. The Central upload runs before the GitHub
+`dev.ancaria.coderpack:api` and `dev.ancaria.coderpack:api-kotlin` from. The JARs and agent archive are packed only
+for a new version on `master`. `api-kotlin.jar` is not among the release
+assets: nothing downloads it from a release, because no part of the loader
+stages it. It reaches a mod through Maven Central only. The Central upload runs before the GitHub
 release action, which creates `v<version>`. Pull requests still build and
 upload their Gradle JARs as workflow artifacts, but they publish nothing.
 
@@ -374,7 +433,11 @@ These repositories are siblings of coderpack under `ancaria-dev`:
 - `research` contains the probes and static analysis that established the
   addresses and hook behavior.
 - `build` owns the `dev.ancaria.coderpack` Gradle plugin, descriptor
-  generation, packed-JAR verification, and mod templates.
+  generation, packed-JAR verification, and mod templates. Its Kotlin templates
+  declare `api-kotlin` and its `Contents` check is the reason that module's
+  package sits outside `dev.ancaria.coderpack.api`. Its end-to-end test compiles
+  a generated Kotlin mod against a stub of this module, so a declaration a
+  template uses has to exist in both.
 
 ## Operational gotchas
 
