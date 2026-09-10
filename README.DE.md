@@ -154,6 +154,20 @@ Listener müssen kurz bleiben. Nach 250 ms beendet der Host die Wartezeit und
 lässt den ursprünglichen Wert passieren. Aufrufe über `context.game()` warten
 höchstens zwei Sekunden auf eine Antwort des Agents.
 
+### Protokollierung
+
+`context.log` schreibt mit der Mod-Id als Präfix auf stderr des
+Loader-Prozesses, und der Host gibt die Zeile unverändert aus. Alles andere, was
+ein Mod auf die Konsole schreibt, landet ebenfalls dort: Der Loader leitet
+`System.out` auf stderr um, bevor der erste Mod geladen wird. Über stdout laufen
+die Protokollrahmen, und eine fremde Zeile kann einen Rahmen zerschneiden.
+
+Am Logger ist dafür nichts einzustellen. Log4j2 und Logback richten ihren
+`ConsoleAppender` standardmäßig auf `System.out`, lesen ihn aber erst bei ihrer
+ersten Konfiguration, also nach der Umleitung. slf4j-simple und
+`java.util.logging` schreiben ohnehin auf stderr. Nur wer an `System.out` vorbei
+direkt auf Dateideskriptor 1 schreibt, zerstört den Datenstrom weiterhin.
+
 ### Derselbe Mod in Kotlin
 
 `dev.ancaria.coderpack:api-kotlin` ist dieselbe API in Kotlin-Syntax. Sie kann

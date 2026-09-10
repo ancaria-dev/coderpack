@@ -132,6 +132,19 @@ Listener code for a veto runs while the game thread is stopped, so keep it
 short. After 250 ms, the host abandons an unanswered veto and lets the original
 value through.
 
+### Logging
+
+`context.log` writes to the loader process’s stderr, prefixed with the mod id,
+and the host prints the line as it is. Everything else a mod says to the console
+ends up there too: the loader points `System.out` at stderr before the first mod
+loads. Protocol frames travel on stdout, and a stray line can cut one in half.
+
+No logger configuration is needed for this. Log4j2 and Logback both aim their
+`ConsoleAppender` at `System.out` by default, but they read it when they first
+configure themselves, which happens after the redirect. slf4j-simple and
+`java.util.logging` write to stderr anyway. The one thing that still breaks the
+stream is writing to file descriptor 1 directly, past `System.out`.
+
 ### The same mod in Kotlin
 
 `dev.ancaria.coderpack:api-kotlin` is the same API with Kotlin syntax on top. It
