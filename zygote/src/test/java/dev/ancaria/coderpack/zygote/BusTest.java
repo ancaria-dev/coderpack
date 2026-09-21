@@ -4,10 +4,11 @@ import dev.ancaria.coderpack.api.Events;
 import dev.ancaria.coderpack.api.Handle;
 import dev.ancaria.coderpack.api.Priority;
 import dev.ancaria.coderpack.api.Subscribe;
+import dev.ancaria.coderpack.api.event.Decision;
 import dev.ancaria.coderpack.api.event.Event;
+import dev.ancaria.coderpack.api.event.Fold;
 import dev.ancaria.coderpack.api.event.Gold;
 import dev.ancaria.coderpack.api.event.MobHit;
-import dev.ancaria.coderpack.api.event.Veto;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -23,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The three dispatch rules (order, ignoreCancelled and MONITOR) through both
- *  registration styles, plus the type index that has to leave all three alone. */
+/** The dispatch rules (order, the fold, ignoreVetoed and MONITOR) through both
+ *  registration styles, plus the type index that has to leave them alone. */
 class BusTest {
 
     private static Gold gold() {
@@ -76,11 +77,11 @@ class BusTest {
                              Priority.MONITOR), listener.seen);
     }
 
-    public static final class Canceller {
+    public static final class Vetoer {
 
         @Subscribe(priority = Priority.FIRST)
-        public void veto(Gold event) {
-            event.cancel();
+        public Gold.Mutation veto(Gold event) {
+            return Gold.Mutation.veto();
         }
     }
 
@@ -89,7 +90,7 @@ class BusTest {
         boolean careful;
         boolean careless;
 
-        @Subscribe(ignoreCancelled = true)
+        @Subscribe(ignoreVetoed = true)
         public void skipMe(Gold event) {
             careful = true;
         }
@@ -101,30 +102,34 @@ class BusTest {
     }
 
     @Test
-    void cancelledEventSkipsOnlyTheListenersThatAskedToBeSkipped() {
+    void vetoedEventSkipsOnlyTheListenersThatAskedToBeSkipped() {
         Both listener = new Both();
         Bus bus = new Bus();
-        bus.register("canceller", new Canceller());
+        bus.register("vetoer", new Vetoer());
         bus.register("both", listener);
         bus.dispatch(gold());
-        assertFalse(listener.careful, "ignoreCancelled listener was called anyway");
-        assertTrue(listener.careless, "dispatch stopped at the cancel");
+        assertFalse(listener.careful, "ignoreVetoed listener was called anyway");
+        assertTrue(listener.careless, "dispatch stopped at the veto");
     }
 
     public static final class Meddler {
 
-        boolean sawTheRewrite;
+        long sawValue;
 
         @Subscribe
-        public void decide(Gold event) {
-            event.delta(200);
+        public Gold.Mutation decide(Gold event) {
+            return Gold.Mutation.of(200);
         }
 
+        /**
+         * A monitor may still declare a return. The bus drops it, which is the
+         * loader backstop behind the lint rule, so this asserts the drop rather
+         * than relying on a mod never writing it.
+         */
         @Subscribe(priority = Priority.MONITOR)
-        public void watch(Gold event) {
-            sawTheRewrite = "200".equals(event.rewrites().get("delta"));
-            event.cancel();
-            event.delta(1);
+        public Gold.Mutation watch(Gold event) {
+            sawValue = event.value();
+            return Gold.Mutation.veto();
         }
     }
 
@@ -135,14 +140,71 @@ class BusTest {
         bus.register("meddler", listener);
         Gold event = gold();
         bus.dispatch(event);
-        assertTrue(listener.sawTheRewrite, "a monitor should see what was decided");
-        assertFalse(event.canceled(), "a monitor cancelled the event");
-        assertEquals(Map.of("delta", "200"), event.rewrites());
+        assertEquals(200, listener.sawValue, "a monitor should see what was decided");
+        assertFalse(event.vetoed(), "a monitor vetoed the event");
+        assertEquals(Map.of("delta", "200"), Fold.verdict(event));
+    }
+
+    // --- the fold -------------------------------------------------------
+
+    public static final class Doubler {
+
+        @Subscribe
+        public Gold.Mutation twice(Gold event) {
+            return Gold.Mutation.of(event.value() * 2);
+        }
+    }
+
+    @Test
+    void twoListenersDoublingTheSameNumberCompose() {
+        Bus bus = new Bus();
+        bus.register("one", new Doubler());
+        bus.register("two", new Doubler());
+        Gold event = gold();
+        bus.dispatch(event);
+        // 100 -> 200 -> 400. The old shape gave 200, because the second
+        // listener read the arrived value and overwrote the first.
+        assertEquals(400, event.value());
+        assertEquals(100, event.initial());
+    }
+
+    @Test
+    void resetDiscardsEarlierWorkAndLiftsAVeto() {
+        Bus bus = new Bus();
+        Events events = events(bus, "fold");
+        events.decide(Gold.class, Priority.FIRST, e -> Gold.Mutation.of(200));
+        events.decide(Gold.class, Priority.NORMAL, e -> Gold.Mutation.veto());
+        events.decide(Gold.class, Priority.LAST, e -> Gold.Mutation.reset());
+        Gold event = gold();
+        bus.dispatch(event);
+        assertFalse(event.vetoed(), "reset should lift a veto");
+        assertEquals(100, event.value(), "reset should put the arrived value back");
+        assertEquals(Map.of(), Fold.verdict(event));
+    }
+
+    @Test
+    void aLastMutationEndsTheChainButNotTheMonitors() {
+        Bus bus = new Bus();
+        Events events = events(bus, "fold");
+        List<String> seen = new ArrayList<>();
+        events.decide(Gold.class, Priority.FIRST, e -> {
+            seen.add("first");
+            return Gold.Mutation.of(200).asLast();
+        });
+        events.decide(Gold.class, Priority.NORMAL, e -> {
+            seen.add("normal");
+            return Gold.Mutation.of(999);
+        });
+        events.on(Gold.class, Priority.MONITOR, e -> seen.add("monitor:" + e.value()));
+        Gold event = gold();
+        bus.dispatch(event);
+        assertEquals(List.of("first", "monitor:200"), seen);
+        assertEquals(200, event.value());
     }
 
     // --- the type index -------------------------------------------------
 
-    /** What a tracer looks like: one method for everything, one for the vetoable half. */
+    /** What a tracer looks like: one method for everything, one for the decidable half. */
     public static final class Wide {
 
         final List<String> seen = new ArrayList<>();
@@ -153,8 +215,8 @@ class BusTest {
         }
 
         @Subscribe
-        public void vetoable(Veto event) {
-            seen.add("veto:" + event.getClass().getSimpleName());
+        public void decidable(Decision event) {
+            seen.add("decision:" + event.getClass().getSimpleName());
         }
     }
 
@@ -165,7 +227,7 @@ class BusTest {
         bus.register("wide", listener);
         bus.dispatch(gold());
         bus.dispatch(new MobHit(Map.of("name", "TYPE_NPC_GHUL01")));
-        // Gold is a Veto is an Event. MobHit is only an Event.
+        // Gold is a Decision is an Event. MobHit is only an Event.
         //
         // Which of the two Gold lines comes first is deliberately not asserted.
         // Both methods are NORMAL, so their order is their registration order,
@@ -175,7 +237,7 @@ class BusTest {
         // inside one priority is pinned by the test below instead, where the
         // registrations are made one at a time.
         assertEquals(3, listener.seen.size());
-        assertEquals(List.of("event:Gold", "veto:Gold"),
+        assertEquals(List.of("decision:Gold", "event:Gold"),
                      listener.seen.subList(0, 2).stream().sorted().toList());
         assertEquals("event:MobHit", listener.seen.get(2));
     }
@@ -188,9 +250,9 @@ class BusTest {
         // Registered across three different declared types, at two priorities.
         events.on(Event.class, e -> seen.add("a"));
         events.on(Gold.class, e -> seen.add("b"));
-        events.on(Veto.class, Priority.FIRST, e -> seen.add("c"));
+        events.on(Decision.class, Priority.FIRST, e -> seen.add("c"));
         events.on(Event.class, e -> seen.add("d"));
-        events.on(Veto.class, e -> seen.add("e"));
+        events.on(Decision.class, e -> seen.add("e"));
         bus.dispatch(gold());
         assertEquals(List.of("c", "a", "b", "d", "e"), seen,
                      "the index reordered listeners inside one priority");
@@ -261,11 +323,11 @@ class BusTest {
     }
 
     @Test
-    void aLambdaListenerHonoursIgnoreCancelled() {
+    void aLambdaListenerHonoursIgnoreVetoed() {
         Bus bus = new Bus();
         Events events = events(bus, "lambda");
         List<String> seen = new ArrayList<>();
-        events.on(Gold.class, Priority.FIRST, Gold::cancel);
+        events.decide(Gold.class, Priority.FIRST, e -> Gold.Mutation.veto());
         events.on(Gold.class, Priority.NORMAL, true, e -> seen.add("careful"));
         events.on(Gold.class, e -> seen.add("careless"));
         bus.dispatch(gold());
@@ -276,15 +338,12 @@ class BusTest {
     void aLambdaMonitorChangesNothingEither() {
         Bus bus = new Bus();
         Events events = events(bus, "lambda");
-        events.on(Gold.class, e -> e.delta(200));
-        events.on(Gold.class, Priority.MONITOR, e -> {
-            e.cancel();
-            e.delta(1);
-        });
+        events.decide(Gold.class, e -> Gold.Mutation.of(200));
+        events.decide(Gold.class, Priority.MONITOR, e -> Gold.Mutation.veto());
         Gold event = gold();
         bus.dispatch(event);
-        assertFalse(event.canceled(), "a lambda monitor cancelled the event");
-        assertEquals(Map.of("delta", "200"), event.rewrites());
+        assertFalse(event.vetoed(), "a lambda monitor vetoed the event");
+        assertEquals(Map.of("delta", "200"), Fold.verdict(event));
     }
 
     @Test
@@ -332,7 +391,7 @@ class BusTest {
         final List<Long> ids = new ArrayList<>();
 
         void record(Gold event) {
-            ids.add(event.delta());
+            ids.add(event.value());
         }
     }
 

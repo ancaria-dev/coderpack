@@ -1,5 +1,6 @@
 package dev.ancaria.coderpack.zygote;
 
+import dev.ancaria.coderpack.api.event.Fold;
 import dev.ancaria.coderpack.api.event.Gold;
 import org.junit.jupiter.api.Test;
 
@@ -7,11 +8,16 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** What the merged decision looks like on the wire. */
+/** What the folded decision looks like on the wire. */
 class VerdictTest {
 
     private static Gold gold() {
         return new Gold(Map.of("delta", "100", "current", "50", "dir", "gain"));
+    }
+
+    private static Gold folded(Gold event, dev.ancaria.coderpack.api.event.EventMutation m) {
+        Fold.apply(event, m);
+        return event;
     }
 
     @Test
@@ -20,17 +26,34 @@ class VerdictTest {
     }
 
     @Test
-    void rewritesGoOutAsSetFields() {
-        Gold event = gold();
-        event.delta(200);
+    void aNoneIsStillTheGameValue() {
+        Gold event = folded(gold(), Gold.Mutation.none());
+        assertEquals("END 7 ok=1", Verdict.of(7, event).encode());
+    }
+
+    @Test
+    void changesGoOutAsSetFields() {
+        Gold event = folded(gold(), Gold.Mutation.of(200));
         assertEquals("END 7 set.delta=200", Verdict.of(7, event).encode());
     }
 
     @Test
-    void cancelWinsOverARewrite() {
-        Gold event = gold();
-        event.delta(200);
-        event.cancel();
+    void vetoWinsOverAChange() {
+        Gold event = folded(gold(), Gold.Mutation.of(200));
+        folded(event, Gold.Mutation.veto());
         assertEquals("END 7 cancel=1", Verdict.of(7, event).encode());
+    }
+
+    @Test
+    void resetPutsTheGameValueBack() {
+        Gold event = folded(gold(), Gold.Mutation.of(200));
+        folded(event, Gold.Mutation.reset());
+        assertEquals("END 7 ok=1", Verdict.of(7, event).encode());
+    }
+
+    @Test
+    void aChangeBackToTheArrivedValueSaysNothing() {
+        Gold event = folded(gold(), Gold.Mutation.of(100));
+        assertEquals("END 7 ok=1", Verdict.of(7, event).encode());
     }
 }
