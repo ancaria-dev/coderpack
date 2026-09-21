@@ -202,20 +202,31 @@ and test suites.
 
 ## Event model
 
-The vetoable API events are `Gold`, `Experience`, `Damage`, `Skill`,
-`Attribute`, and `Pickup`. Their hooks run before the relevant game write, so
-listeners may cancel the write or add verdict rewrites. The typed read-only
-events are `LevelUp`, `Hero`, `World`, `Position`, `Moved`, `Death`,
-`NearDeath`, `MobHit`, `MobDeath`, `Equip`, and `Stored`.
+`docs/EVENTS.md` is the contract. This is the shape of its implementation.
+
+The decidable API events are `Gold`, `Experience`, `Damage`, `Skill`,
+`Attribute`, and `Pickup`, each a `Decision` and each naming its own nested
+`Mutation` through `Decides`. Their hooks run before the relevant game write.
+The typed read-only events are `LevelUp`, `Hero`, `World`, `Position`, `Moved`,
+`Death`, `NearDeath`, `MobHit`, `MobDeath`, `Equip`, and `Stored`.
+
+An event is immutable to a mod. What a listener may do is its return type:
+`void` observes, and anything else must be that event's `Mutation`, which
+`Bus.register` checks and the mod linter checks earlier. `EventMutation` is
+sealed with four kinds, `NONE`, `RESET`, `VETO` and `CHANGE`, plus `asLast()`
+across all four. `Fold` applies one answer and is the only thing that writes to
+an event; there is no `Guard` any more, because there is no write to guard.
 
 A wire event without a typed registry entry becomes `Unknown` with its original
 name and fields. Listeners registered for `Event` therefore receive typed and
 unknown events. Dispatch order is `FIRST`, `NORMAL`, `LAST`, then `MONITOR`,
-with registration order inside each priority. Cancellation does not stop later
-listeners. `ignoreCancelled = true` skips a listener once an earlier listener
-has cancelled a veto. `MONITOR` sees the final prior state, but `Guard` discards
-its cancellation and rewrites before `Verdict` builds the reply and logs one
-warning per listener.
+with registration order inside each priority. `Bus` folds each answer before
+calling the next listener, which is what makes `Amount.value()` mean "with
+everyone before me in it" and what lets two mods scaling the same number
+compose. A veto does not stop later listeners; `ignoreVetoed = true` skips a
+listener once an earlier one has vetoed, and only a later `RESET` lifts it.
+`asLast()` ends the deciding but never skips the `MONITOR` step. A `MONITOR`
+listener that returns a mutation has it dropped with one warning.
 
 The API uses JSR 305 nullability annotations. Each of its three packages has a
 `package-info.java` with `@ParametersAreNonnullByDefault`. Mark nullable
@@ -255,31 +266,35 @@ The contents, one file per group:
 | File | What it adds |
 |---|---|
 | `Mod.kt` | `SacredMod`, an abstract class that stores the context and hands it to `Context.load()` as a receiver. Deliberately the same simple name as the interface. |
-| `Events.kt` | `on<E> { }`, the `events { }` registration block, `once<E> { }`, and `Handle` combinators. |
+| `Events.kt` | The `events { }` registration block, `once<E> { }`, and `Handle` combinators. |
+| `Scope.kt` | `on<E> { }` and the `On<E>` scope it runs in, with `mutate { }`. |
 | `Context.kt` | `id`, `game`, and `gameDir` as properties. Deliberately no `events` property; the block of that name would make `context.events { }` an overload question. |
-| `Event.kt` | `event["key"]`, `long`, `int`, `fields`, and `Veto.canceled`. |
+| `Event.kt` | `event["key"]`, `long`, `int`, `fields`, `Decision.vetoed`, and `Amount.value` / `Amount.initial`. |
 | `Session.kt`, `Progress.kt`, `Combat.kt`, `Items.kt`, `Game.kt` | Properties for the events and entities in each group. |
 
-The rule for a property is the rule the API already applies. A field the API
-lets a listener rewrite becomes a `var`, and everything else stays a `val`. So
-`Gold.delta` is a `var` and `Gold.current` is not, for the same reason the Java
-has a setter for one and not the other: the game keeps XOR-encoded mirrors of
-the total and resets a total it did not compute itself. Do not add a setter here
-that `api` does not already have.
+Every property here is a `val`. There used to be `var`s for the fields a
+listener could rewrite, and they did not round-trip: assigning one added a
+rewrite while a read still gave the game's own number. That whole asymmetry is
+gone with the mutable event. Do not add a setter here; the API has none to
+forward to.
 
-Those `var`s do not round-trip, and that is deliberate. Assigning one adds a
-rewrite to the map `Verdict` answers the host from; it does not touch the fields
-the event arrived with, so reading the property back still gives the game's own
-number, to this listener and to every later one. It is what `delta(x)` then
-`delta()` does in Java. Making the getter read the pending rewrite would be a
-better-behaved `var` and would make a Kotlin mod and a Java mod disagree about
-the same event. `PropertiesTest` pins the behavior.
+Kotlin gets one `on` where Java needs `on` and `decide`, because the body is
+`Unit` on both paths and says what it decided by calling `mutate`. Two overloads
+split by lambda return type would be worse than a second name rather than
+better: Kotlin coerces any lambda to `() -> Unit`, so the observing overload
+would win for a body that returns a mutation and drop it in silence. `mutate` is
+an extension constrained to `E : Decides<M>`, so an event with nothing to decide
+has no such function. The runtime branch between the two Java methods lives in
+one internal function in `Scope.kt` and needs one cast through `Nothing`, which
+its comment explains; nothing unsound reaches a mod through it.
 
-`api-kotlin/src/test` covers the parts a signature cannot: that an assignment
-reaches the rewrite map and a read does not see it, and that `once` unregisters
+`api-kotlin/src/test` covers the parts a signature cannot: that `value` reports
+the fold while `initial` keeps the arrived number, and that `once` unregisters
 on both sides of its race, including the case where the event arrives before
 `on` has returned the handle. `Fakes.kt` holds the stand-in bus, context and
-game. No test here reaches the loader or the game.
+game, and its bus keeps observing and deciding registrations in one list
+because "still on the bus" is one idea. No test here reaches the loader or the
+game.
 
 `SacredMod.load()` is named `load` rather than `onLoad` because it cannot be
 called that. An extension receiver becomes the first JVM parameter, so
