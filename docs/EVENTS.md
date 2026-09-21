@@ -151,9 +151,4 @@ string keys stay at the edge where the wire is.
   `0x005827AB`, which `hooksafe.py` has to bless first. Recorded on the
   `skillWrite` row in `mappings`. `Attribute` is fine, it snapshots on entry;
   `Experience` reconstructs too but can read the sheet instead.
-- `Pickup` lost `type()`, `price()` and `copy()` with no replacement.
-  `Game.retype(int, int)` covers the type; nothing covers a price, a level or
-  a packed modifier set, so copying one item onto another is not expressible
-  right now. It needs a `Game` method of its own, and the agent already has
-  the `reshape` half of it.
 - `ignoreVetoed` is a working name.
