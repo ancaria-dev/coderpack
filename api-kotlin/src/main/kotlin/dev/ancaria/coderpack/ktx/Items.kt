@@ -8,10 +8,9 @@ import dev.ancaria.coderpack.api.event.Stored
 
 // Items, and the events that carry one.
 //
-// Pickup decides which object is picked up, which is a choice rather than a
-// quantity, so it has no `value`. A listener names another object by returning
-// Pickup.Mutation.replace(ref). Editing the item itself left the decision
-// entirely: it outlives the event, so it belongs on Game. The properties here
+// Pickup decides which object is picked up and what that object becomes,
+// neither of which is a quantity, so it has no `value`. A listener answers with
+// Pickup.Mutation.replace, .retype or .reshape. The properties here
 // stay methods.
 
 public inline val Pickup.item: Item get() = item()

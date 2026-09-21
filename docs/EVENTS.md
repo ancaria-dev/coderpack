@@ -42,8 +42,8 @@ knowing the other exists. `initial()` is for a listener that needs to report
 or reason about what the game itself intended.
 
 Both live on the events that decide a number, not on `Event`. `Pickup` decides
-which object is picked up, which is a choice rather than a quantity, so it
-carries neither.
+which object is picked up and what that object becomes, neither of which is a
+quantity, so it carries neither and answers `ref()` and `edited()` instead.
 
 The event is immutable to a mod, not to the loader: `value()` reads a field
 only the bus writes, between listeners. One object per frame, no copying, and
