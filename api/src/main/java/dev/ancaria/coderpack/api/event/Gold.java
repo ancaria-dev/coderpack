@@ -2,23 +2,25 @@ package dev.ancaria.coderpack.api.event;
 
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 /**
- * Gold is about to change. Vetoable, and the delta is what may be rewritten,
- * never the total. The game keeps XOR-encoded mirrors of gold and re-checks
- * them periodically, so a rewritten total is detected and reset to 1. Boosting
- * the delta lets the game compute the total itself and refresh its own mirrors.
+ * Gold is about to change. The decision is the delta, never the total. The game
+ * keeps XOR-encoded mirrors of gold and re-checks them periodically, so a
+ * rewritten total is detected and reset to 1. Changing the delta lets the game
+ * compute the total itself and refresh its own mirrors.
+ *
+ * <p>This is the one event whose {@link #value()} is a delta rather than the
+ * number about to be stored. The game forced the shape, and it is the shape the
+ * rest of the API would have wanted anyway.
  */
-public final class Gold extends Veto {
+public final class Gold extends Amount implements Decides<Gold.Mutation> {
 
     public Gold(Map<String, String> fields) {
-        super(fields);
+        super(fields, "delta");
     }
 
-    /** Negative for a purchase, positive for loot. */
-    public long delta() {
-        return num("delta");
-    }
-
+    /** The total before this change. Not up for decision. */
     public long current() {
         return num("current");
     }
@@ -27,7 +29,27 @@ public final class Gold extends Veto {
         return "spend".equals(text("dir"));
     }
 
-    public void delta(long value) {
-        rewrite("delta", value);
+    /** What a {@code Gold} listener returns. */
+    public static final class Mutation extends Amount.Change {
+
+        public static final Mutation NONE = new Mutation(Kind.NONE, false, 0);
+        public static final Mutation RESET = new Mutation(Kind.RESET, false, 0);
+        public static final Mutation VETO = new Mutation(Kind.VETO, false, 0);
+
+        private Mutation(Kind kind, boolean last, long value) {
+            super(kind, last, value);
+        }
+
+        /** The delta to apply instead. Negative for a purchase. */
+        @Nonnull
+        public static Mutation of(long delta) {
+            return new Mutation(Kind.CHANGE, false, delta);
+        }
+
+        @Override
+        @Nonnull
+        public Mutation asLast() {
+            return new Mutation(kind(), true, value());
+        }
     }
 }

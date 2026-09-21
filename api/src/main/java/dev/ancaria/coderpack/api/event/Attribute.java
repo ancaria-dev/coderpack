@@ -2,18 +2,19 @@ package dev.ancaria.coderpack.api.event;
 
 import java.util.Map;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * An attribute point was just spent. Vetoable, but applied differently from the
- * others. There is no register to swap here, so Coderpack writes the field
+ * An attribute point was just spent. Decidable, but applied differently from
+ * the others. There is no register to swap here, so Coderpack writes the field
  * after the game's own grant returns. The result is the same, because nothing
  * else has observed the value yet.
  */
-public final class Attribute extends Veto {
+public final class Attribute extends Amount implements Decides<Attribute.Mutation> {
 
     public Attribute(Map<String, String> fields) {
-        super(fields);
+        super(fields, "next");
     }
 
     /** 0 Strength, 1 Endurance, 2 Dexterity, 3 PhysReg, 4 MentalReg, 5 Charisma. */
@@ -26,15 +27,32 @@ public final class Attribute extends Veto {
         return text("name");
     }
 
-    public long value() {
+    /** The value before the point was spent. */
+    public long previous() {
         return num("prev");
     }
 
-    public long next() {
-        return num("next");
-    }
+    /** What an {@code Attribute} listener returns. */
+    public static final class Mutation extends Amount.Change {
 
-    public void next(long value) {
-        rewrite("next", value);
+        public static final Mutation NONE = new Mutation(Kind.NONE, false, 0);
+        public static final Mutation RESET = new Mutation(Kind.RESET, false, 0);
+        public static final Mutation VETO = new Mutation(Kind.VETO, false, 0);
+
+        private Mutation(Kind kind, boolean last, long value) {
+            super(kind, last, value);
+        }
+
+        /** The value to store instead. Clamped to 0..65535. */
+        @Nonnull
+        public static Mutation of(long value) {
+            return new Mutation(Kind.CHANGE, false, value);
+        }
+
+        @Override
+        @Nonnull
+        public Mutation asLast() {
+            return new Mutation(kind(), true, value());
+        }
     }
 }

@@ -59,7 +59,7 @@ is a compile error everywhere it is not handled yet.
 | `Reset` | Discard every earlier mod's work, back to `initial`. | nothing |
 | `Veto` | This must not happen at all. | `cancel` |
 | `Change` | A value. `Experience.Mutation` and the other five. | `set.<field>` |
-| `Final(inner)` | Any of the above, and the chain stops here. | as `inner` |
+| `.asLast()` | Any of the above, and the chain stops here. | as the mutation |
 
 `Reset` and `Veto` are different and both are needed. `Reset` puts the game's
 own number back: the damage still lands, at the size the game computed.
@@ -70,7 +70,7 @@ A veto is not sticky. A later listener can return `Reset` and lift it, which
 is the only way to lift it. One rule instead of a rule with an exception, and
 the undo is loud rather than incidental.
 
-`Final` is the answer to "my mod is authoritative here". It is blunt on
+`asLast()` is the answer to "my mod is authoritative here". It is blunt on
 purpose, and it hands the win to whoever runs earlier, which is decided by
 priority and then by mod load order — alphabetical by jar filename. Reach for
 `Priority` first.
@@ -92,7 +92,7 @@ counter or a statistics mod belongs, and a `MONITOR` listener that returns a
 mutation is a lint error at mod build time and an ignored value with one
 warning at run time.
 
-`Final` does not skip the `MONITOR` step. A mod may cut the deciding short;
+`asLast()` does not skip the `MONITOR` step. A mod may cut the deciding short;
 it may not blind the trackers. Whatever the monitors see is the final state,
 including who ended the chain.
 
@@ -152,3 +152,8 @@ string keys stay at the edge where the wire is.
   object in the world and outlive the event, so they are not a verdict at all.
   Where they land — `Game`, `Item`, or both — is not decided.
 - `ignoreVetoed` is a working name.
+- `Pickup` lost `type()`, `price()` and `copy()` with no replacement.
+  `Game.retype(int, int)` covers the type; nothing covers a price, a
+  level or a packed modifier set, so copying one item onto another is
+  not expressible right now. It needs a `Game` method of its own, and
+  the agent already has the `reshape` half of it.

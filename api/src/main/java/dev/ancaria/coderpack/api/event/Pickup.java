@@ -7,25 +7,35 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 /**
- * Something is about to be picked up off the ground. Vetoable, and the item
- * itself may be swapped for another one.
+ * Something is about to be picked up off the ground. The decision is which
+ * object, which is a choice rather than a quantity, so this event carries no
+ * {@code value()}: the last listener to name an object wins, and that is the
+ * right answer for an identity.
  *
  * <p>Both powers come from the game's own code rather than from a trick: the
  * pickup function looks the item up by reference and, when the lookup fails,
- * jumps to its epilogue having done nothing. Cancelling hands it a reference
- * that resolves to nothing, and {@link #replace(int)} hands it another.
+ * jumps to its epilogue having done nothing. A veto hands it a reference that
+ * resolves to nothing, and {@link Mutation#replace(int)} hands it another.
  *
  * <p>Only the hero's pickups are asked about. A creature picking something up
- * arrives as an ordinary event with {@link #player()} false, and cancelling it
+ * arrives as an ordinary event with {@link #player()} false, and a veto on it
  * does nothing.
+ *
+ * <p>Editing the item itself is no longer part of this decision. Changing a
+ * type, a price or a set of modifiers edits an object in the world and outlives
+ * the event, so it belongs on
+ * {@link dev.ancaria.coderpack.api.Game#retype(int, int)} rather than in a
+ * verdict the game is waiting on.
  */
-public final class Pickup extends Veto {
+public final class Pickup extends Decision implements Decides<Pickup.Mutation> {
 
     private final Item item;
+    private int ref;
 
     public Pickup(Map<String, String> fields) {
         super(fields);
         this.item = new Item(fields);
+        this.ref = initial();
     }
 
     @Nonnull
@@ -38,47 +48,61 @@ public final class Pickup extends Veto {
         return num("player") == 1;
     }
 
-    /**
-     * Pick up a different object instead. The reference has to be one that
-     * already exists. Coderpack cannot conjure an item, so this swaps between
-     * things the world already holds. An unknown reference picks up nothing,
-     * which is the same as cancelling.
-     */
-    public void replace(int ref) {
-        rewrite("ref", ref);
+    /** The object the game means to pick up. */
+    public int initial() {
+        return (int) num("ref");
     }
 
-    /**
-     * Turn the item into another type before it is picked up. Unlike
-     * {@link #replace(int)}, which only redirects this one pickup, this edits
-     * the object itself and the change outlives the event.
-     *
-     * <p>It changes what the item is called and how it is drawn, and nothing
-     * else. See {@link dev.ancaria.coderpack.api.Game#retype(int, int)}.
-     */
-    public void type(int typeId) {
-        rewrite("type", typeId);
+    /** The object it will pick up, with every earlier listener folded in. */
+    public int ref() {
+        return ref;
     }
 
-    /** Base value. The tooltip price is derived from it. */
-    public void price(int value) {
-        rewrite("price", value);
+    @Override
+    void reset() {
+        this.ref = initial();
     }
 
-    /**
-     * Make this item a copy of one that already exists.
-     *
-     * <p>This is the reliable way to turn an item into another. Rather than
-     * assembling a plausible one out of a type id and hoping the rest follows,
-     * take everything that makes an item what it is from a real one seen in
-     * this session. A rune upgrades what its modifiers name, so a retyped rune
-     * without them is only renamed.
-     */
-    public void copy(Item template) {
-        rewrite("type", template.typeId());
-        rewrite("price", template.price());
-        rewrite("level", template.level());
-        rewrite("min", template.minLevel());
-        rewrite("mods", template.packedModifiers());
+    @Override
+    void change(EventMutation mutation) {
+        this.ref = ((Mutation) mutation).ref;
+    }
+
+    @Override
+    @Nonnull
+    Map<String, String> verdict() {
+        return ref == initial() ? Map.of() : Map.of("ref", Integer.toString(ref));
+    }
+
+    /** What a {@code Pickup} listener returns. */
+    public static final class Mutation extends EventMutation {
+
+        public static final Mutation NONE = new Mutation(Kind.NONE, false, 0);
+        public static final Mutation RESET = new Mutation(Kind.RESET, false, 0);
+        public static final Mutation VETO = new Mutation(Kind.VETO, false, 0);
+
+        private final int ref;
+
+        private Mutation(Kind kind, boolean last, int ref) {
+            super(kind, last);
+            this.ref = ref;
+        }
+
+        /**
+         * Pick up a different object instead. The reference has to be one that
+         * already exists. Coderpack cannot conjure an item, so this swaps
+         * between things the world already holds. An unknown reference picks up
+         * nothing, which is the same as a veto.
+         */
+        @Nonnull
+        public static Mutation replace(int ref) {
+            return new Mutation(Kind.CHANGE, false, ref);
+        }
+
+        @Override
+        @Nonnull
+        public Mutation asLast() {
+            return new Mutation(kind(), true, ref);
+        }
     }
 }

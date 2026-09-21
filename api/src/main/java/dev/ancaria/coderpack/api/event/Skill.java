@@ -2,15 +2,24 @@ package dev.ancaria.coderpack.api.event;
 
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 /**
- * A skill value is about to change. Slots are reported by index, never by
- * name. The skill set differs per class and per character, so any fixed
+ * A skill value is about to change. Slots are reported by index, never by name.
+ * The skill set differs per class and per character, so any fixed
  * index-to-name table would be wrong for most saves.
+ *
+ * <p>{@link #initial()} is not trustworthy at the ends of the range. The hook
+ * sits one instruction after the game's write, and the game's own clamp-to-0
+ * and clamp-to-255 branches store the byte and jump straight to it, so the
+ * previous value is reconstructed by subtraction and is wrong whenever a clamp
+ * ran. {@code RESET} inherits that. See the {@code skillWrite} row in
+ * {@code mappings}.
  */
-public final class Skill extends Veto {
+public final class Skill extends Amount implements Decides<Skill.Mutation> {
 
     public Skill(Map<String, String> fields) {
-        super(fields);
+        super(fields, "next");
     }
 
     public int slot() {
@@ -21,16 +30,32 @@ public final class Skill extends Veto {
         return num("delta");
     }
 
-    public long value() {
+    /** The value before this change, reconstructed rather than observed. */
+    public long previous() {
         return num("prev");
     }
 
-    public long next() {
-        return num("next");
-    }
+    /** What a {@code Skill} listener returns. */
+    public static final class Mutation extends Amount.Change {
 
-    /** Stored as a byte, so the value is clamped to 0..255. */
-    public void next(long value) {
-        rewrite("next", value);
+        public static final Mutation NONE = new Mutation(Kind.NONE, false, 0);
+        public static final Mutation RESET = new Mutation(Kind.RESET, false, 0);
+        public static final Mutation VETO = new Mutation(Kind.VETO, false, 0);
+
+        private Mutation(Kind kind, boolean last, long value) {
+            super(kind, last, value);
+        }
+
+        /** The value to store instead. Stored as a byte, so clamped to 0..255. */
+        @Nonnull
+        public static Mutation of(long value) {
+            return new Mutation(Kind.CHANGE, false, value);
+        }
+
+        @Override
+        @Nonnull
+        public Mutation asLast() {
+            return new Mutation(kind(), true, value());
+        }
     }
 }

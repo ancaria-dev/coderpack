@@ -21,10 +21,14 @@ public enum Priority {
 
     /**
      * Watch only. A {@code MONITOR} listener sees the event with every other
-     * listener's work already in it, and whatever it cancels or rewrites is
-     * thrown away instead of reaching the game. The loader logs the attempt
-     * once and carries on. This is where a tracer, a counter or a statistics
-     * mod belongs.
+     * listener's work already folded into it, which is what {@code value()}
+     * means, and it runs even when an earlier listener ended the chain. A mod
+     * may cut the deciding short; it may not blind the trackers.
+     *
+     * <p>Such a listener returns {@code void}. A {@code MONITOR} method that
+     * returns a mutation is a lint error when the mod is built, and its value
+     * is ignored with one warning if one reaches the loader anyway. This is
+     * where a tracer, a counter or a statistics mod belongs.
      */
     MONITOR
 }

@@ -1,8 +1,11 @@
 package dev.ancaria.coderpack.api;
 
+import dev.ancaria.coderpack.api.event.Decides;
 import dev.ancaria.coderpack.api.event.Event;
+import dev.ancaria.coderpack.api.event.EventMutation;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 
@@ -56,7 +59,8 @@ public interface Events {
      *
      * <p>The type is the same thing the annotation's parameter type is, so a
      * listener on {@link Event} still sees every event and one on
-     * {@link dev.ancaria.coderpack.api.event.Veto} sees every vetoable one.
+     * {@link dev.ancaria.coderpack.api.event.Decision} sees every decidable
+     * one.
      */
     @Nonnull
     default <E extends Event> Handle on(Class<E> type, Consumer<E> listener) {
@@ -76,5 +80,41 @@ public interface Events {
      */
     @Nonnull
     <E extends Event> Handle on(Class<E> type, Priority priority,
-                                boolean ignoreCancelled, Consumer<E> listener);
+                                boolean ignoreVetoed, Consumer<E> listener);
+
+    /**
+     * Registers a listener that decides, at {@link Priority#NORMAL} and hearing
+     * about vetoed events.
+     *
+     * <pre>{@code events.decide(Experience.class, e -> Experience.Mutation.of(e.value() * 2));}</pre>
+     *
+     * <p>This is the one method {@code on} cannot be: two overloads split by
+     * lambda return type are ambiguous in Java, and in Kotlin the losing one
+     * silently discards the mutation, because any lambda coerces to
+     * {@code () -> Unit}. Hence a second name.
+     *
+     * <p>Only an event that declares a {@link Decides} mutation can be passed
+     * here, and the function's return is pinned to that event's own type.
+     */
+    @Nonnull
+    default <M extends EventMutation, E extends Event & Decides<M>> Handle decide(
+            Class<E> type, Function<E, M> listener) {
+        return decide(type, Priority.NORMAL, false, listener);
+    }
+
+    /** As {@link #decide(Class, Function)}, choosing when it runs. */
+    @Nonnull
+    default <M extends EventMutation, E extends Event & Decides<M>> Handle decide(
+            Class<E> type, Priority priority, Function<E, M> listener) {
+        return decide(type, priority, false, listener);
+    }
+
+    /**
+     * As {@link #decide(Class, Function)}, choosing when it runs and whether an
+     * already vetoed event still reaches it.
+     */
+    @Nonnull
+    <M extends EventMutation, E extends Event & Decides<M>> Handle decide(
+            Class<E> type, Priority priority, boolean ignoreVetoed,
+            Function<E, M> listener);
 }
