@@ -29,7 +29,7 @@ public final class Pipe {
     private final BufferedReader in;
     private final PrintStream out;
     /**
-     * The object that opened the handle both streams sit on, held for as long
+     * The objects that opened the handles the streams sit on, held for as long
      * as they are. Never read: reachability is the whole point, because a
      * collected owner is a closed handle.
      */
@@ -49,14 +49,23 @@ public final class Pipe {
     /**
      * The dedicated channel, named by the host on the command line.
      *
-     * <p>Windows hands a named pipe out as an ordinary file, so opening one
-     * duplex takes no native code. Both streams share that one handle, and the
-     * {@link RandomAccessFile} is kept because it owns it.
+     * <p>Windows hands a named pipe out as an ordinary file, so reaching one
+     * takes no native code. Two of them, {@code .in} for frames arriving and
+     * {@code .out} for frames going back, opened in that order because the
+     * host waits for them in that order.
+     *
+     * <p>Two rather than one duplex pipe, which is what this was first written
+     * as. A handle opened for synchronous use is a file object Windows
+     * serialises operations on, so a read parked in the reader thread holds up
+     * every write from the dispatch thread. One frame gets through and the
+     * loader goes quiet. A pipe per direction cannot do that.
      */
-    public static Pipe over(String name) throws IOException {
-        RandomAccessFile handle = new RandomAccessFile(name, "rw");
-        FileDescriptor fd = handle.getFD();
-        return new Pipe(new FileInputStream(fd), new FileOutputStream(fd), handle);
+    public static Pipe over(String base) throws IOException {
+        RandomAccessFile in = new RandomAccessFile(base + ".in", "rw");
+        RandomAccessFile out = new RandomAccessFile(base + ".out", "rw");
+        return new Pipe(new FileInputStream(in.getFD()),
+                        new FileOutputStream(out.getFD()),
+                        () -> { in.close(); out.close(); });
     }
 
     /** stdin and stdout, the way the host spoke before it offered a pipe. */
