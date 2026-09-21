@@ -22,17 +22,17 @@ class EventsTest {
 
         assertEquals(Hero::class.java, bus.type)
         assertEquals(Priority.NORMAL, bus.priority)
-        assertEquals(false, bus.ignoreCancelled)
+        assertEquals(false, bus.ignoreVetoed)
     }
 
     @Test
     fun `on carries a priority and a skip when it is given one`() {
         val bus = Bus()
-        bus.on<Gold>(Priority.MONITOR, ignoreCancelled = true) { }
+        bus.on<Gold>(Priority.MONITOR, ignoreVetoed = true) { }
 
         assertEquals(Gold::class.java, bus.type)
         assertEquals(Priority.MONITOR, bus.priority)
-        assertEquals(true, bus.ignoreCancelled)
+        assertEquals(true, bus.ignoreVetoed)
     }
 
     @Test

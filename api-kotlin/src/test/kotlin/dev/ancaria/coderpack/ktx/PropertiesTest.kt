@@ -2,6 +2,7 @@ package dev.ancaria.coderpack.ktx
 
 import dev.ancaria.coderpack.api.entity.Item
 import dev.ancaria.coderpack.api.event.Damage
+import dev.ancaria.coderpack.api.event.Fold
 import dev.ancaria.coderpack.api.event.Gold
 
 import kotlin.test.Test
@@ -11,47 +12,53 @@ import kotlin.test.assertNull
 class PropertiesTest {
 
     // The properties are one line each and the compiler checks their types, so
-    // what is worth a test is the half that is not a rename: an assignment has
-    // to reach the rewrite map the loader answers the host from, a read has to
-    // survive a field the agent did not send, and the two have to stay the two
-    // halves the API says they are rather than the round trip a `var` looks
-    // like.
+    // what is worth a test is the half that is not a rename: that a read
+    // survives a field the agent did not send, and that `value` reports the
+    // fold rather than the arrived number.
+    //
+    // What used to be pinned here was the opposite, and it is gone with the
+    // `var`s: assigning a field once left the getter reading the game's own
+    // number, so a second mod never saw the first. An event is read-only now,
+    // a listener answers with a mutation, and the fold is what the next
+    // listener reads.
 
     @Test
-    fun `assigning a vetoable field writes the rewrite the loader reads`() {
+    fun `value reports the fold and initial keeps the arrived number`() {
         val gold = Gold(mapOf("delta" to "10", "current" to "50", "dir" to "gain"))
 
-        gold.delta = gold.delta * 3 / 2
+        Fold.apply(gold, Gold.Mutation.of(gold.value * 3 / 2))
 
-        assertEquals(mapOf("delta" to "15"), gold.rewrites())
+        assertEquals(15L, gold.value)
+        assertEquals(10L, gold.initial)
+        assertEquals(mapOf("delta" to "15"), Fold.verdict(gold))
         assertEquals(50L, gold.current)
         assertEquals(false, gold.spending)
     }
 
-    // The one thing about these properties that has to be learned rather than
-    // guessed, so it is pinned here. Assigning does not change what the field
-    // reads: it asks for a different value, and the game's own number stays
-    // visible to this listener and to every later one. That is what `delta(x)`
-    // then `delta()` does in Java, and a Kotlin mod that disagreed with a Java
-    // mod about one event would be worse than a `var` that surprises once.
     @Test
-    fun `assigning does not change what the field reads`() {
-        val gold = Gold(mapOf("delta" to "10"))
+    fun `two listeners doubling the same number compose`() {
+        val damage = Damage(mapOf("prev" to "100", "next" to "60", "max" to "120"))
 
-        gold.delta = 99
+        Fold.apply(damage, Damage.Mutation.of(damage.value + 20))
+        Fold.apply(damage, Damage.Mutation.of(damage.value + 20))
 
-        assertEquals(10L, gold.delta)
-        assertEquals(mapOf("delta" to "99"), gold.rewrites())
+        assertEquals(100L, damage.value)
+        assertEquals(60L, damage.initial)
+        assertEquals(mapOf("next" to "100"), Fold.verdict(damage))
     }
 
     @Test
-    fun `compound assignment reads once and asks for the sum`() {
-        val damage = Damage(mapOf("prev" to "100", "next" to "60", "max" to "120"))
+    fun `a veto hides the value and a reset brings the game number back`() {
+        val gold = Gold(mapOf("delta" to "10"))
 
-        damage.next += 20
+        Fold.apply(gold, Gold.Mutation.of(99))
+        Fold.apply(gold, Gold.Mutation.veto())
+        assertEquals(true, gold.vetoed)
+        assertEquals(mapOf(), Fold.verdict(gold))
 
-        assertEquals(mapOf("next" to "80"), damage.rewrites())
-        assertEquals(60L, damage.next)
+        Fold.apply(gold, Gold.Mutation.reset())
+        assertEquals(false, gold.vetoed)
+        assertEquals(10L, gold.value)
     }
 
     @Test
