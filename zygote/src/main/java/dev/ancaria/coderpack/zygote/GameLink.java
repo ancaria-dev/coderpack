@@ -1,6 +1,7 @@
 package dev.ancaria.coderpack.zygote;
 
 import dev.ancaria.coderpack.api.Game;
+import dev.ancaria.coderpack.api.entity.Item;
 import dev.ancaria.coderpack.api.entity.Player;
 
 import java.util.LinkedHashMap;
@@ -116,6 +117,20 @@ final class GameLink implements Game {
         fields.put("type", Integer.toString(typeId));
         // A positive signal, not the absence of "err": a command that timed
         // out comes back as an empty map and would otherwise read as success.
+        return call("item.reshape", fields).get("ok") != null;
+    }
+
+    @Override
+    public boolean reshape(int ref, Item template) {
+        // The agent names these fields exactly as they arrive on an item event,
+        // so what was read off a Pickup is what is written back here.
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("ref", Integer.toString(ref));
+        fields.put("type", Integer.toString(template.typeId()));
+        fields.put("price", Integer.toString(template.price()));
+        fields.put("level", Integer.toString(template.level()));
+        fields.put("min", Integer.toString(template.minLevel()));
+        fields.put("mods", template.packedModifiers());
         return call("item.reshape", fields).get("ok") != null;
     }
 }

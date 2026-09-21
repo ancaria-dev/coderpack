@@ -1,5 +1,7 @@
 package dev.ancaria.coderpack.api;
 
+import dev.ancaria.coderpack.api.entity.Item;
+
 import dev.ancaria.coderpack.api.entity.Player;
 
 import java.util.Map;
@@ -55,4 +57,23 @@ public interface Game {
      * @return false when the reference resolves to nothing
      */
     boolean retype(int ref, int typeId);
+
+    /**
+     * Makes one item a copy of another, in the world, permanently.
+     *
+     * <p>The reliable way to turn an item into another. Rather than assembling
+     * a plausible one out of a type id and hoping the rest follows, this takes
+     * everything that makes an item what it is from a real one seen in this
+     * session: its type, price, level, minimum level and modifiers. A rune
+     * upgrades what its modifiers name, so a retyped rune without them is only
+     * renamed, which is what {@link #retype(int, int)} alone does.
+     *
+     * <p>This used to live on the pickup event as {@code copy}. It is here
+     * because it edits an object in the world and outlives the event that
+     * noticed it, which makes it something done to the game rather than a
+     * verdict the game is waiting on.
+     *
+     * @return false when the reference resolves to nothing
+     */
+    boolean reshape(int ref, Item template);
 }

@@ -157,4 +157,6 @@ class FakeGame(private val known: Map<String, Int> = mapOf("TYPE_OBJECT_RING" to
         known.filterKeys { it.startsWith(prefix) }
 
     override fun retype(ref: Int, typeId: Int): Boolean = false
+
+    override fun reshape(ref: Int, template: dev.ancaria.coderpack.api.entity.Item): Boolean = false
 }
