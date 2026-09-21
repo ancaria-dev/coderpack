@@ -135,15 +135,17 @@ value through.
 ### Logging
 
 `context.log` writes to the loader process’s stderr, prefixed with the mod id,
-and the host prints the line as it is. Everything else a mod says to the console
-ends up there too: the loader points `System.out` at stderr before the first mod
-loads. Protocol frames travel on stdout, and a stray line can cut one in half.
+and the host prints the line as it is. Printing any other way is fine as well:
+protocol frames travel on named pipes of their own, and the JVM’s own stdout
+and stderr belong to the mods and reach the host’s console. Log4j2, Logback,
+slf4j-simple and `java.util.logging` all work with nothing configured.
 
-No logger configuration is needed for this. Log4j2 and Logback both aim their
-`ConsoleAppender` at `System.out` by default, but they read it when they first
-configure themselves, which happens after the redirect. slf4j-simple and
-`java.util.logging` write to stderr anyway. The one thing that still breaks the
-stream is writing to file descriptor 1 directly, past `System.out`.
+The loader still points `System.out` at stderr before the first mod loads,
+which is why a plain `println` turns up there. That guards the case where the
+host offers no pipe, and it changes nothing for a mod.
+
+`context.log` is the better habit even so: with five mods installed, it is the
+only one of these that says which mod spoke.
 
 ### The same mod in Kotlin
 

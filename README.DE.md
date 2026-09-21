@@ -157,16 +157,18 @@ höchstens zwei Sekunden auf eine Antwort des Agents.
 ### Protokollierung
 
 `context.log` schreibt mit der Mod-Id als Präfix auf stderr des
-Loader-Prozesses, und der Host gibt die Zeile unverändert aus. Alles andere, was
-ein Mod auf die Konsole schreibt, landet ebenfalls dort: Der Loader leitet
-`System.out` auf stderr um, bevor der erste Mod geladen wird. Über stdout laufen
-die Protokollrahmen, und eine fremde Zeile kann einen Rahmen zerschneiden.
+Loader-Prozesses, und der Host gibt die Zeile unverändert aus. Jede andere Art
+zu schreiben geht genauso: Die Protokollrahmen laufen über eigene benannte
+Pipes, und stdout und stderr der JVM gehören den Mods und landen auf der
+Konsole des Hosts. Log4j2, Logback, slf4j-simple und `java.util.logging`
+funktionieren alle ohne jede Einstellung.
 
-Am Logger ist dafür nichts einzustellen. Log4j2 und Logback richten ihren
-`ConsoleAppender` standardmäßig auf `System.out`, lesen ihn aber erst bei ihrer
-ersten Konfiguration, also nach der Umleitung. slf4j-simple und
-`java.util.logging` schreiben ohnehin auf stderr. Nur wer an `System.out` vorbei
-direkt auf Dateideskriptor 1 schreibt, zerstört den Datenstrom weiterhin.
+Der Loader leitet `System.out` trotzdem auf stderr um, bevor der erste Mod
+geladen wird, weshalb ein einfaches `println` dort auftaucht. Das sichert den
+Fall ab, dass der Host keine Pipe anbietet, und ändert für einen Mod nichts.
+
+`context.log` bleibt dennoch die bessere Gewohnheit: Bei fünf installierten
+Mods sagt nur diese Zeile, welcher Mod gesprochen hat.
 
 ### Derselbe Mod in Kotlin
 

@@ -457,12 +457,19 @@ These repositories are siblings of coderpack under `ancaria-dev`:
 
 - A fresh checkout has no `agent/src/gen/addr.js`. Run `python tools/addr.py`
   first. Without that file, the host reports it missing and installs no hooks.
-- stdout carries protocol frames and nothing else. `Main.claimStdout` points
-  `System.out` at stderr before the first mod loads, so a mod that calls
-  `println`, or configures Log4j2 or Logback, cannot splice itself into a
-  frame. `Pipe` writes through its own stream on the file descriptor and is
-  unaffected. Keep it that way: a `Pipe` rewritten to use `System.out` would
-  send every frame to stderr and answer nothing.
+- Frames travel on two named pipes the host creates and names with `--pipe`:
+  `<base>.in` in and `<base>.out` out. `Pipe.over` opens both, in that order,
+  because the host waits for them in that order. One per direction and not one
+  duplex pipe: a synchronous handle serialises its operations, so a read parked
+  in the reader thread holds up every write from the dispatch thread, and the
+  loader goes quiet after exactly one frame.
+- Without `--pipe`, `Pipe.overStdio` puts frames back on stdout, which is what
+  the test harnesses drive and what an older host gives. There a mod printing
+  with `System.out` can splice itself into a frame, so `Main.claimStdout`
+  points `System.out` at stderr before the first mod loads. It runs on both
+  transports, because the difference between them is one missing argument.
+  Keep `Pipe` off `System.out` either way: rewritten to use it, every frame
+  would go to the console and the host would hear nothing.
 - Closing the host does not reliably unload an injected agent. Restart the game
   after changing a hook.
 - If the game runs elevated, Frida cannot attach from a normal shell. The host
