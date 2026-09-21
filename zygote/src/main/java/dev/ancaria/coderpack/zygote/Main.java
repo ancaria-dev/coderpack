@@ -4,6 +4,7 @@ import dev.ancaria.coderpack.api.event.Event;
 import dev.ancaria.coderpack.api.event.Veto;
 import dev.ancaria.coderpack.api.event.World;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -24,15 +25,20 @@ public final class Main {
     private static final int QUEUE = 4096;
 
     private static final Bus BUS = new Bus();
-    private static final Pipe PIPE = new Pipe();
-    private static final GameLink GAME = new GameLink(PIPE);
     private static final BlockingQueue<Frame> QUEUED = new ArrayBlockingQueue<>(QUEUE);
+
+    // Assigned once, first thing in main, and never again. Not final only
+    // because which transport to open is an argument, and arguments are not
+    // available while this class initialises.
+    private static Pipe PIPE;
+    private static GameLink GAME;
 
     private static long dropped;
     private static volatile boolean working;
 
     public static void main(String[] args) throws Exception {
         claimStdout();
+        connect(argument(args, "--pipe", null));
         Path mods = Path.of(argument(args, "--mods", "mods")).toAbsolutePath().normalize();
         // Mods live in <Sacred Gold>/mods, so the game folder is one level up.
         // A mod writing a file needs that, not the working directory, which
@@ -83,16 +89,37 @@ public final class Main {
     }
 
     /**
+     * Opens the channel to the host, before anything can want to use it.
+     *
+     * <p>{@code --pipe} names a Windows named pipe the host created for this
+     * JVM alone, and that is what the launcher always starts. Without it the
+     * host is either an older one or a test harness driving Coderpack through
+     * stdin and stdout by hand, so that arrangement stays available. Failing
+     * to open a pipe the host did name is fatal on purpose: falling back would
+     * put frames on stdout again, quietly, on the one path where nothing else
+     * is guarding it.
+     */
+    private static void connect(String name) throws IOException {
+        if (name == null) {
+            PIPE = Pipe.overStdio();
+        } else {
+            PIPE = Pipe.over(name);
+            Log.info("Connected to the host on " + name);
+        }
+        GAME = new GameLink(PIPE);
+    }
+
+    /**
      * Points {@code System.out} at stderr before a single mod class is loaded.
      *
-     * <p>stdout is the protocol. {@link Pipe} writes frames through its own
-     * stream on the file descriptor, so this redirect never touches them, but
-     * every other writer has to be moved out of the way. A mod calling
-     * {@code println} shares neither that stream nor its lock, and the loss is
-     * not the stray line, which the host reports and skips. It is the frame the
-     * stray line splices itself into: a verdict that never arrives leaves the
-     * game thread waiting for the host's fallback, and a command that never
-     * arrives costs the dispatch thread its full two-second timeout.
+     * <p>On a named pipe this changes nothing, and it is still done, because
+     * the stdio transport is one missing argument away and the damage there is
+     * quiet. stdout is the wire in that mode, and a mod calling {@code println}
+     * shares neither {@link Pipe}'s stream nor its lock. The loss is not the
+     * stray line, which the host reports and skips. It is the frame the stray
+     * line splices itself into: a verdict that never arrives leaves the game
+     * thread waiting for the host's fallback, and a command that never arrives
+     * costs the dispatch thread its full two-second timeout.
      *
      * <p>This also covers a mod that brings a logging framework, which is the
      * likelier way to hit it. Log4j2 and Logback both aim their console
