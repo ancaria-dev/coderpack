@@ -8,9 +8,10 @@ import dev.ancaria.coderpack.api.event.Stored
 
 // Items, and the events that carry one.
 //
-// Pickup is vetoable, but not through a field: `replace`, `type`, `price` and
-// `copy` are things done to an item rather than values read back off it, and a
-// `var` whose getter does not exist is worse than the method it replaces. They
+// Pickup decides which object is picked up, which is a choice rather than a
+// quantity, so it has no `value`. A listener names another object by returning
+// Pickup.Mutation.replace(ref). Editing the item itself left the decision
+// entirely: it outlives the event, so it belongs on Game. The properties here
 // stay methods.
 
 public inline val Pickup.item: Item get() = item()

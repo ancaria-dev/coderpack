@@ -11,31 +11,6 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
 
 /**
- * Registers a listener for [E], the type argument taking the place of the
- * `Class` the Java call needs:
- *
- * ```
- * events.on<Damage> { it.next = it.maxHp }
- * events.on<Gold>(Priority.LAST, ignoreCancelled = true) { ... }
- * ```
- *
- * Same bus, same order, same MONITOR rule. This is [Events.on] with the class
- * literal derived and the two flags given the defaults `@Subscribe` has.
- */
-public inline fun <reified E : Event> Events.on(
-    priority: Priority = Priority.NORMAL,
-    ignoreCancelled: Boolean = false,
-    crossinline listener: (E) -> Unit,
-): Handle = on(E::class.java, priority, ignoreCancelled, Consumer { listener(it) })
-
-/** [on], straight off the context, for a mod that only registers a listener or two. */
-public inline fun <reified E : Event> Context.on(
-    priority: Priority = Priority.NORMAL,
-    ignoreCancelled: Boolean = false,
-    crossinline listener: (E) -> Unit,
-): Handle = events().on(E::class.java, priority, ignoreCancelled, Consumer { listener(it) })
-
-/**
  * The registration block:
  *
  * ```
@@ -62,9 +37,9 @@ public inline fun Context.events(block: Events.() -> Unit) {
  */
 public inline fun <reified E : Event> Events.once(
     priority: Priority = Priority.NORMAL,
-    ignoreCancelled: Boolean = false,
+    ignoreVetoed: Boolean = false,
     noinline listener: (E) -> Unit,
-): Handle = once(E::class.java, priority, ignoreCancelled, listener)
+): Handle = once(E::class.java, priority, ignoreVetoed, listener)
 
 /**
  * The part of [once] that is a race rather than sugar, kept out of the inline
@@ -86,12 +61,12 @@ public inline fun <reified E : Event> Events.once(
 internal fun <E : Event> Events.once(
     type: Class<E>,
     priority: Priority,
-    ignoreCancelled: Boolean,
+    ignoreVetoed: Boolean,
     listener: (E) -> Unit,
 ): Handle {
     val fired = AtomicBoolean()
     val registered = AtomicReference<Handle>()
-    val handle = on(type, priority, ignoreCancelled, Consumer { event ->
+    val handle = on(type, priority, ignoreVetoed, Consumer { event ->
         if (fired.compareAndSet(false, true)) {
             // Null only when the event beat `on` back to the line below, which
             // then reads the flag and unregisters instead.

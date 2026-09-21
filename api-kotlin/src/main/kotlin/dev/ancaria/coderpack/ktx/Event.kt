@@ -1,7 +1,8 @@
 package dev.ancaria.coderpack.ktx
 
+import dev.ancaria.coderpack.api.event.Amount
+import dev.ancaria.coderpack.api.event.Decision
 import dev.ancaria.coderpack.api.event.Event
-import dev.ancaria.coderpack.api.event.Veto
 
 /**
  * The field as it arrived, or null when the agent did not send it:
@@ -23,10 +24,20 @@ public fun Event.int(key: String): Int = num(key).toInt()
 public inline val Event.fields: Map<String, String> get() = fields()
 
 /**
- * Whether a listener before this one suppressed the write.
+ * Whether a listener before this one vetoed the write.
  *
- * A cancel does not stop the dispatch, so this can be true while the event is
- * still going round. A listener with nothing to say about a cancelled event
- * asks to be skipped instead, with `ignoreCancelled = true`.
+ * A veto does not stop the dispatch, so this can be true while the event is
+ * still going round, and a later listener can lift it with a reset. A listener
+ * with nothing to say about a vetoed event asks to be skipped instead, with
+ * `ignoreVetoed = true`.
  */
-public inline val Veto.canceled: Boolean get() = canceled()
+public inline val Decision.vetoed: Boolean get() = vetoed()
+
+/**
+ * The number under decision, with every earlier listener folded in. This is the
+ * one to read: two mods doubling it compose into four times.
+ */
+public inline val Amount.value: Long get() = value()
+
+/** The number as the game sent it, before any mod touched it. */
+public inline val Amount.initial: Long get() = initial()

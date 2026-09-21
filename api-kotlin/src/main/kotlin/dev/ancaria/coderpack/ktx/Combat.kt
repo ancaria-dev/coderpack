@@ -5,16 +5,17 @@ import dev.ancaria.coderpack.api.event.Death
 import dev.ancaria.coderpack.api.event.MobHit
 import dev.ancaria.coderpack.api.event.NearDeath
 
-// Damage is the one vetoable event here: its hook sits on the instruction that
-// commits HP, with the new value still in a register. Everything else in this
-// file reports something that has already happened, and the properties say so
-// by being `val`.
+// Damage is the one decidable event here: its hook sits on the instruction that
+// commits HP, with the new value still in a register. Everything in this file
+// is a `val`, here and in Progress.kt, because an event is read-only now. A
+// listener says what it wants by returning a mutation, so there is no property
+// left whose getter and setter would mean opposite things.
+//
+// The HP the game is about to store is Damage.value, from Amount, along with
+// Damage.initial. Both are in Event.kt, once for all five numeric events.
 //
 // MobHit's extensions reach MobDeath as well, which is a MobHit that finished
 // the job.
-//
-// `Damage.next` is a `var` with the asymmetry Progress.kt describes at length:
-// assigning asks for a value, and does not change what the property reads.
 
 /** "damage", "heal" or "clamp". */
 public inline val Damage.kind: String? get() = kind()
@@ -23,11 +24,6 @@ public inline val Damage.damage: Long get() = damage()
 
 /** HP before the blow. */
 public inline val Damage.hp: Long get() = hp()
-
-/** The HP the game is about to store. Assigning to it clamps to 0..maxHp. */
-public inline var Damage.next: Long
-    get() = next()
-    set(value) = next(value)
 
 public inline val Damage.maxHp: Long get() = maxHp()
 
