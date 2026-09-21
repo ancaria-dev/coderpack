@@ -8,6 +8,11 @@
     same literal replacement, so a release does not depend on remembering
     which files happen to say "0.99.0" today.
 
+    One number in those READMEs is not ours: the Gradle plugin the examples
+    apply is ancaria-dev/build's release, which has its own version and has
+    already diverged from this one. Raising it here would point every example
+    at a plugin nobody published. It is left alone and reported.
+
     Run with no argument to print the current version. Pass a new one to bump
     it everywhere in one pass.
 
@@ -40,10 +45,16 @@ $targets = @(
     (Join-Path $root 'README.DE.md')
 )
 
-$pattern = "(?<!\d)$([regex]::Escape($current))(?!\d)"
+$number = "(?<!\d)$([regex]::Escape($current))(?!\d)"
+# The plugin coordinate belongs to ancaria-dev/build, not to this repository.
+$plugin = 'id\("dev\.ancaria\.coderpack"\) version "'
+$pattern = "(?<!$plugin)$number"
+
 $touched = 0
+$left = 0
 foreach ($path in $targets) {
     $text = Get-Content -Path $path -Raw
+    $left += ([regex]::Matches($text, "$plugin$([regex]::Escape($current))")).Count
     $new = [regex]::Replace($text, $pattern, $Version)
     if ($new -eq $text) {
         Write-Warning "$current not found in $path, left untouched"
@@ -54,3 +65,6 @@ foreach ($path in $targets) {
 }
 
 Write-Host "$current -> $Version in $touched file(s)"
+if ($left) {
+    Write-Host "$left Gradle plugin reference(s) left at ${current}: that version is ancaria-dev/build's, not ours"
+}
