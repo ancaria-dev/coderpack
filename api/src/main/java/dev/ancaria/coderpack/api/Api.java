@@ -5,7 +5,7 @@ package dev.ancaria.coderpack.api;
  * {@code api = "1"} and checked by the loader before a mod is started.
  *
  * <p>This is not the artifact version. {@code dev.ancaria.coderpack:api} is at
- * 0.100.0 and that number moves with every release. This one moves only when a
+ * 0.101.0 and that number moves with every release. This one moves only when a
  * mod compiled against the old API would break against the new one: a method
  * removed, a signature changed, an event class renamed. A mod that loads and
  * then dies on a {@code NoSuchMethodError} halfway through a dispatch is worse

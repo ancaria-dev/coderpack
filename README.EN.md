@@ -6,7 +6,7 @@
 ![Gradle](https://img.shields.io/badge/Gradle-9.7.1-02303A?style=for-the-badge&logo=gradle&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-agent-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Version](https://img.shields.io/badge/version-0.100.0-4B5563?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-0.101.0-4B5563?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-4B5563?style=for-the-badge)
 ![Sacred](https://img.shields.io/badge/Sacred-Community-8B1A1A?style=for-the-badge&labelColor=1C1410)
 
@@ -38,7 +38,7 @@ sacred {
     displayName = "Double Gold"
     description = "Twice the loot, same purse"
     entrypoint = "com.example.DoubleGold"
-    apiVersion = "0.100.0"
+    apiVersion = "0.101.0"
     author("you")
 }
 ```
@@ -52,7 +52,7 @@ contain loader API classes.
 
 By default, the descriptor contains `api = "1"`. This is the API contract
 range checked before the loader starts the mod. It is separate from the
-`dev.ancaria.coderpack:api` artifact version, currently `0.100.0`. The artifact
+`dev.ancaria.coderpack:api` artifact version, currently `0.101.0`. The artifact
 version can change with each release. The contract changes only when a mod
 compiled against the previous API would break.
 
@@ -156,7 +156,7 @@ wants it packs it, next to the standard library it already carries.
 
 ```kotlin
 dependencies {
-    implementation("dev.ancaria.coderpack:api-kotlin:0.100.0")
+    implementation("dev.ancaria.coderpack:api-kotlin:0.101.0")
 }
 ```
 
