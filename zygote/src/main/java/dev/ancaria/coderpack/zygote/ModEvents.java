@@ -3,10 +3,13 @@ package dev.ancaria.coderpack.zygote;
 import dev.ancaria.coderpack.api.Events;
 import dev.ancaria.coderpack.api.Handle;
 import dev.ancaria.coderpack.api.Priority;
+import dev.ancaria.coderpack.api.event.Decides;
 import dev.ancaria.coderpack.api.event.Event;
+import dev.ancaria.coderpack.api.event.EventMutation;
 
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * One mod's view of the {@link Bus}. It exists to carry the mod id, which the
@@ -30,8 +33,16 @@ final class ModEvents implements Events {
 
     @Override
     public <E extends Event> Handle on(Class<E> type, Priority priority,
-                                       boolean ignoreCancelled, Consumer<E> listener) {
+                                       boolean ignoreVetoed, Consumer<E> listener) {
         return bus.on(mod, Objects.requireNonNull(type, "type"), priority,
-                      ignoreCancelled, Objects.requireNonNull(listener, "listener"));
+                      ignoreVetoed, Objects.requireNonNull(listener, "listener"));
+    }
+
+    @Override
+    public <M extends EventMutation, E extends Event & Decides<M>> Handle decide(
+            Class<E> type, Priority priority, boolean ignoreVetoed,
+            Function<E, M> listener) {
+        return bus.decide(mod, Objects.requireNonNull(type, "type"), priority,
+                          ignoreVetoed, Objects.requireNonNull(listener, "listener"));
     }
 }

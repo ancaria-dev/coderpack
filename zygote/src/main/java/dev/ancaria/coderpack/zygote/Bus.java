@@ -4,8 +4,10 @@ import dev.ancaria.coderpack.api.Handle;
 import dev.ancaria.coderpack.api.Priority;
 import dev.ancaria.coderpack.api.Subscribe;
 import dev.ancaria.coderpack.api.event.Event;
-import dev.ancaria.coderpack.api.event.Guard;
-import dev.ancaria.coderpack.api.event.Veto;
+import dev.ancaria.coderpack.api.event.Decides;
+import dev.ancaria.coderpack.api.event.Decision;
+import dev.ancaria.coderpack.api.event.EventMutation;
+import dev.ancaria.coderpack.api.event.Fold;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -19,18 +21,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Listener registry and dispatch.
  *
  * <p>Order is {@link Priority} order (FIRST, NORMAL, LAST, MONITOR) and
  * within one step the order the mod registered its listeners, whether it did
- * that with {@link Subscribe} or with {@code events.on(...)}. Two rules keep
- * the last mod to run from simply overwriting what the others decided: a
- * listener asking for {@code ignoreCancelled} is not called once the event is
- * cancelled, and a MONITOR listener is watched, so nothing it cancels or
- * rewrites reaches the verdict. A cancel by itself stops nothing. See
- * {@link Veto}.
+ * that with {@link Subscribe} or with {@code events.on(...)}. What keeps the
+ * last mod to run from simply overwriting what the others decided is the fold:
+ * each answer is applied before the next listener is called, so a listener
+ * reading {@code value()} reads everyone before it and composes with them
+ * instead of starting over. A veto by itself stops nothing; later listeners
+ * still see the event unless they asked for {@code ignoreVetoed}.
  *
  * <p>A listener that throws is not allowed to take the game with it: the
  * exception is logged and, after a few of them, that listener is dropped. One
@@ -75,18 +78,30 @@ final class Bus {
      * signature-polymorphic, so {@code invokeExact} demands the static types at
      * the call site and the handle's own type to match to the letter. Hence
      * one type, asType'd onto every handle at registration, and one call site.
+     *
+     * <p>The return is {@code Object} rather than {@code void} because a
+     * listener that decides returns a mutation and one that observes returns
+     * nothing. {@code asType} adapts both onto this: it drops a value when the
+     * target is void and introduces a null when the source is. So an observer
+     * answers null, which is also what "nothing to fold" means, and the two
+     * kinds of listener stay one loop and one call site.
      */
-    private static final MethodType CALL = MethodType.methodType(void.class, Event.class);
+    private static final MethodType CALL = MethodType.methodType(Object.class, Event.class);
 
     private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
-    /** {@code Consumer.accept}, the entry point of the lambda path. */
-    private static final MethodHandle ACCEPT = accept();
+    /** {@code Consumer.accept}, the entry point of the observing lambda path. */
+    private static final MethodHandle ACCEPT = entry(
+            Consumer.class, "accept", void.class);
 
-    private static MethodHandle accept() {
+    /** {@code Function.apply}, the same for the deciding one. */
+    private static final MethodHandle APPLY = entry(
+            Function.class, "apply", Object.class);
+
+    private static MethodHandle entry(Class<?> owner, String name, Class<?> returns) {
         try {
             return MethodHandles.publicLookup().findVirtual(
-                    Consumer.class, "accept", MethodType.methodType(void.class, Object.class));
+                    owner, name, MethodType.methodType(returns, Object.class));
         } catch (ReflectiveOperationException impossible) {
             throw new ExceptionInInitializerError(impossible);
         }
@@ -97,7 +112,7 @@ final class Bus {
         final MethodHandle call;
         final Class<?> type;
         final Priority priority;
-        final boolean ignoreCancelled;
+        final boolean ignoreVetoed;
         final String name;
         final int seq;
 
@@ -113,11 +128,11 @@ final class Bus {
         volatile boolean dead;
 
         Listener(MethodHandle call, Class<?> type, Priority priority,
-                 boolean ignoreCancelled, String name, int seq) {
+                 boolean ignoreVetoed, String name, int seq) {
             this.call = call;
             this.type = type;
             this.priority = priority;
-            this.ignoreCancelled = ignoreCancelled;
+            this.ignoreVetoed = ignoreVetoed;
             this.name = name;
             this.seq = seq;
         }
@@ -157,6 +172,20 @@ final class Bus {
                          + " uses @Subscribe but doesn’t take exactly one event.");
                 continue;
             }
+            // void observes, a mutation decides. The linter rejects anything
+            // else when the mod is built; this is the loader’s own backstop for
+            // a hand-built jar.
+            Class<?> answers = method.getReturnType();
+            if (answers != void.class && !EventMutation.class.isAssignableFrom(answers)) {
+                Log.warn(mod + ": " + method.getName() + " returns "
+                         + answers.getSimpleName() + ". A @Subscribe method"
+                         + " returns void or that event’s own Mutation.");
+                continue;
+            }
+            if (answers != void.class && annotation.priority() == Priority.MONITOR) {
+                Log.warn(mod + ": " + method.getName() + " is MONITOR and returns"
+                         + " a mutation. MONITOR watches; its answer is ignored.");
+            }
             // A public method on a package-private class is not reachable by
             // reflection from here, and keeping listener classes package-private
             // is the natural way to write a mod, so ask for access explicitly.
@@ -174,7 +203,7 @@ final class Bus {
                 continue;
             }
             add(new Listener(call, method.getParameterTypes()[0], annotation.priority(),
-                             annotation.ignoreCancelled(),
+                             annotation.ignoreVetoed(),
                              mod + "." + method.getName(),
                              registrations.getAndIncrement()));
             found++;
@@ -182,11 +211,28 @@ final class Bus {
         Log.info(mod + ": " + found + (found == 1 ? " listener." : " listeners."));
     }
 
-    /** The lambda path. Same bus, same order, same MONITOR rule. */
+    /**
+     * The deciding lambda path. Same bus, same order, same fold: a
+     * {@code Function} differs from a {@code Consumer} only in answering with
+     * something instead of null, which is exactly the difference between the
+     * two kinds of listener.
+     */
+    <M extends EventMutation, E extends Event & Decides<M>> Handle decide(
+            String mod, Class<E> type, Priority priority, boolean ignoreVetoed,
+            Function<E, M> listener) {
+        Listener added = new Listener(APPLY.bindTo(listener).asType(CALL), type,
+                                      priority, ignoreVetoed,
+                                      mod + ".decide(" + type.getSimpleName() + ")",
+                                      registrations.getAndIncrement());
+        add(added);
+        return () -> drop(added);
+    }
+
+    /** The observing lambda path. */
     <E extends Event> Handle on(String mod, Class<E> type, Priority priority,
-                                boolean ignoreCancelled, Consumer<E> listener) {
+                                boolean ignoreVetoed, Consumer<E> listener) {
         Listener added = new Listener(ACCEPT.bindTo(listener).asType(CALL), type,
-                                      priority, ignoreCancelled,
+                                      priority, ignoreVetoed,
                                       mod + ".on(" + type.getSimpleName() + ")",
                                       registrations.getAndIncrement());
         add(added);
@@ -200,10 +246,16 @@ final class Bus {
         }
     }
 
-    /** Runs every listener that accepts this event, in priority order. */
+    /**
+     * Runs every listener that accepts this event, in priority order, folding
+     * each answer in before the next one is called. That fold is what makes
+     * {@code value()} mean "with everyone before me in it", and it is why a
+     * second mod doubling the same number composes with the first instead of
+     * overwriting it.
+     */
     void dispatch(Event event) {
         List<Listener> list = listenersFor(event.getClass());
-        Veto veto = event instanceof Veto vetoable ? vetoable : null;
+        Decision decision = event instanceof Decision decided ? decided : null;
         boolean died = false;
         // By index and over a list nobody can mutate: it is immutable, and a
         // registration on another thread publishes a different one instead of
@@ -214,15 +266,20 @@ final class Bus {
             if (listener.dead) {
                 continue;
             }
-            if (listener.ignoreCancelled && veto != null && veto.canceled()) {
-                continue;
+            boolean monitor = listener.priority == Priority.MONITOR;
+            if (decision != null && !monitor) {
+                // A mod may end the deciding early. It may not blind the
+                // trackers, so this skip never reaches the monitor step.
+                if (Fold.stopped(decision)) {
+                    continue;
+                }
+                if (listener.ignoreVetoed && decision.vetoed()) {
+                    continue;
+                }
             }
-            boolean watching = veto != null && listener.priority == Priority.MONITOR;
-            if (watching) {
-                Guard.watch(veto);
-            }
+            Object answer;
             try {
-                listener.call.invokeExact(event);
+                answer = listener.call.invokeExact(event);
             } catch (Throwable failure) {
                 Throwable cause = failure.getCause() == null ? failure : failure.getCause();
                 Log.error(listener.name, cause);
@@ -232,14 +289,42 @@ final class Bus {
                     listener.dead = true;
                     died = true;
                 }
-            } finally {
-                if (watching) {
-                    refuse(listener, Guard.release(veto));
-                }
+                continue;
             }
+            if (answer == null || decision == null) {
+                continue;
+            }
+            if (monitor) {
+                refuse(listener);
+                continue;
+            }
+            fold(listener, decision, (EventMutation) answer);
         }
         if (died) {
             sweep();
+        }
+    }
+
+    /**
+     * Folds one answer in and says so when it threw another mod's work away.
+     * Every such case is logged every time, not once per listener: the fold
+     * moved in here so that these are visible, and a quiet reset would be the
+     * silent overwrite this design exists to remove.
+     */
+    private static void fold(Listener listener, Decision decision, EventMutation answer) {
+        switch (answer.kind()) {
+            case RESET -> Log.warn(listener.name + " reset "
+                                   + decision.getClass().getSimpleName()
+                                   + ", discarding every earlier listener's work.");
+            case VETO -> Log.info(listener.name + " vetoed "
+                                  + decision.getClass().getSimpleName() + ".");
+            default -> {
+            }
+        }
+        if (Fold.apply(decision, answer) && answer.last()) {
+            Log.warn(listener.name + " ended the chain on "
+                     + decision.getClass().getSimpleName()
+                     + "; later deciding listeners were skipped.");
         }
     }
 
@@ -324,13 +409,14 @@ final class Bus {
         }
     }
 
-    /** Says once, per listener, that its writes are being thrown away. */
-    private static void refuse(Listener listener, boolean tried) {
-        if (!tried || listener.warned) {
+    /** Says once, per listener, that its answer is being thrown away. */
+    private static void refuse(Listener listener) {
+        if (listener.warned) {
             return;
         }
         listener.warned = true;
-        Log.warn(listener.name + " is MONITOR and tried to change the event. "
-                 + "The change was ignored; this warning won’t be repeated.");
+        Log.warn(listener.name + " is MONITOR and returned a mutation. It was "
+                 + "ignored; this warning won’t be repeated. The mod linter "
+                 + "refuses this when the mod is built.");
     }
 }

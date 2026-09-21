@@ -1,7 +1,7 @@
 package dev.ancaria.coderpack.zygote;
 
 import dev.ancaria.coderpack.api.event.Event;
-import dev.ancaria.coderpack.api.event.Veto;
+import dev.ancaria.coderpack.api.event.Decision;
 import dev.ancaria.coderpack.api.event.World;
 
 import java.io.IOException;
@@ -183,8 +183,8 @@ public final class Main {
         if (!asked) {
             return;
         }
-        PIPE.write(event instanceof Veto veto
-                ? Verdict.of(frame.seq(), veto)
+        PIPE.write(event instanceof Decision decision
+                ? Verdict.of(frame.seq(), decision)
                 : Verdict.ok(frame.seq()));
     }
 
