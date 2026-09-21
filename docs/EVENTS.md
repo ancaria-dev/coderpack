@@ -1,8 +1,9 @@
 # Events
 
-This is the contract mods are written against. It is the target shape, not
-what `api` currently compiles: the events are still mutable and carry a
-rewrite map. The open questions at the end are the parts I have not settled.
+This is the contract mods are written against. `api` implements it. The fold
+that makes `value()` mean what it says lives in the bus, and `zygote`,
+`api-kotlin`, the mod linter in `build` and the four mods have not caught up
+yet.
 
 ## Two kinds of listener
 
@@ -132,8 +133,8 @@ failure this design exists to remove.
 
 Nothing here changes the protocol. The host and the agent still receive
 `cancel` or a set of `set.<field>` entries, and every case above collapses
-into one of those. `Final`, `Reset` and `None` are decided on the JVM and are
-never seen by the game.
+into one of those. `asLast()`, `Reset` and `None` are decided on the JVM and
+are never seen by the game.
 
 A `Change` turns into wire fields through a package-private method on the
 event. Mods cannot reach it and cannot implement their own `Change`, so the
@@ -141,19 +142,18 @@ string keys stay at the edge where the wire is.
 
 ## Open questions
 
-- `Skill.initial()` may be a fiction. The agent hooks one instruction after
-  the write and reconstructs the previous value by subtracting the delta, so
-  at the 0..255 clamp that number is wrong, and `Reset` would write it back.
-  `Attribute` is fine — it snapshots on entry. `Experience` derives its
-  previous value too but can read the real one from the sheet instead. This
-  needs a live probe and a row in `mappings` before `Reset` means anything on
-  `Skill`.
-- `Pickup.type()`, `price()` and `copy()` leave the mutation. They edit an
-  object in the world and outlive the event, so they are not a verdict at all.
-  Where they land — `Game`, `Item`, or both — is not decided.
-- `ignoreVetoed` is a working name.
+- `Skill.initial()` is a fiction at both ends of the range, and this is
+  settled rather than suspected: the disassembly puts the game's clamp-to-255
+  and clamp-to-0 branches before the hook, each storing the byte and jumping
+  straight to it, so the agent's `stored - delta` is wrong whenever a clamp
+  ran and the hook cannot tell a clamped write from a normal one. `RESET` on
+  `Skill` inherits that. A true previous value needs the agent to read it at
+  `0x005827AB`, which `hooksafe.py` has to bless first. Recorded on the
+  `skillWrite` row in `mappings`. `Attribute` is fine, it snapshots on entry;
+  `Experience` reconstructs too but can read the sheet instead.
 - `Pickup` lost `type()`, `price()` and `copy()` with no replacement.
-  `Game.retype(int, int)` covers the type; nothing covers a price, a
-  level or a packed modifier set, so copying one item onto another is
-  not expressible right now. It needs a `Game` method of its own, and
-  the agent already has the `reshape` half of it.
+  `Game.retype(int, int)` covers the type; nothing covers a price, a level or
+  a packed modifier set, so copying one item onto another is not expressible
+  right now. It needs a `Game` method of its own, and the agent already has
+  the `reshape` half of it.
+- `ignoreVetoed` is a working name.
