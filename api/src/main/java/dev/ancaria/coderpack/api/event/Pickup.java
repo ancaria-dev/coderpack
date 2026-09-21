@@ -77,16 +77,34 @@ public final class Pickup extends Decision implements Decides<Pickup.Mutation> {
     /** What a {@code Pickup} listener returns. */
     public static final class Mutation extends EventMutation {
 
-        public static final Mutation NONE = new Mutation(Kind.NONE, false, 0);
-        public static final Mutation RESET = new Mutation(Kind.RESET, false, 0);
-        public static final Mutation VETO = new Mutation(Kind.VETO, false, 0);
-
+        private static final Mutation NONE = new Mutation(Kind.NONE, false, 0);
+        private static final Mutation RESET = new Mutation(Kind.RESET, false, 0);
+        private static final Mutation VETO = new Mutation(Kind.VETO, false, 0);
         private final int ref;
 
         private Mutation(Kind kind, boolean last, int ref) {
             super(kind, last);
             this.ref = ref;
         }
+
+        /** Add nothing. The fold stands as it is. */
+        @Nonnull
+        public static Mutation none() {
+            return NONE;
+        }
+
+        /** Discard every earlier listener's work and put the game's own back. */
+        @Nonnull
+        public static Mutation reset() {
+            return RESET;
+        }
+
+        /** Stop the write. Only a later {@link #reset()} lifts it. */
+        @Nonnull
+        public static Mutation veto() {
+            return VETO;
+        }
+
 
         /**
          * Pick up a different object instead. The reference has to be one that
