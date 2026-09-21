@@ -119,7 +119,7 @@ public final class Pickup extends Decision implements Decides<Pickup.Mutation> {
 
         @Override
         @Nonnull
-        public Mutation asLast() {
+        public Mutation last() {
             return new Mutation(kind(), true, ref);
         }
     }

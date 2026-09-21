@@ -33,27 +33,27 @@ class VerdictTest {
 
     @Test
     void changesGoOutAsSetFields() {
-        Gold event = folded(gold(), Gold.Mutation.of(200));
+        Gold event = folded(gold(), Gold.Mutation.change(200));
         assertEquals("END 7 set.delta=200", Verdict.of(7, event).encode());
     }
 
     @Test
     void vetoWinsOverAChange() {
-        Gold event = folded(gold(), Gold.Mutation.of(200));
+        Gold event = folded(gold(), Gold.Mutation.change(200));
         folded(event, Gold.Mutation.veto());
         assertEquals("END 7 cancel=1", Verdict.of(7, event).encode());
     }
 
     @Test
     void resetPutsTheGameValueBack() {
-        Gold event = folded(gold(), Gold.Mutation.of(200));
+        Gold event = folded(gold(), Gold.Mutation.change(200));
         folded(event, Gold.Mutation.reset());
         assertEquals("END 7 ok=1", Verdict.of(7, event).encode());
     }
 
     @Test
     void aChangeBackToTheArrivedValueSaysNothing() {
-        Gold event = folded(gold(), Gold.Mutation.of(100));
+        Gold event = folded(gold(), Gold.Mutation.change(100));
         assertEquals("END 7 ok=1", Verdict.of(7, event).encode());
     }
 }

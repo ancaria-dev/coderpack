@@ -67,13 +67,13 @@ public final class Skill extends Amount implements Decides<Skill.Mutation> {
 
         /** The value to store instead. Stored as a byte, so clamped to 0..255. */
         @Nonnull
-        public static Mutation of(long value) {
+        public static Mutation change(long value) {
             return new Mutation(Kind.CHANGE, false, value);
         }
 
         @Override
         @Nonnull
-        public Mutation asLast() {
+        public Mutation last() {
             return new Mutation(kind(), true, value());
         }
     }

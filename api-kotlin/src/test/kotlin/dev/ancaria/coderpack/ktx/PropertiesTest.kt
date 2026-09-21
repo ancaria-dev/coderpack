@@ -26,7 +26,7 @@ class PropertiesTest {
     fun `value reports the fold and initial keeps the arrived number`() {
         val gold = Gold(mapOf("delta" to "10", "current" to "50", "dir" to "gain"))
 
-        Fold.apply(gold, Gold.Mutation.of(gold.value * 3 / 2))
+        Fold.apply(gold, Gold.Mutation.change(gold.value * 3 / 2))
 
         assertEquals(15L, gold.value)
         assertEquals(10L, gold.initial)
@@ -39,8 +39,8 @@ class PropertiesTest {
     fun `two listeners doubling the same number compose`() {
         val damage = Damage(mapOf("prev" to "100", "next" to "60", "max" to "120"))
 
-        Fold.apply(damage, Damage.Mutation.of(damage.value + 20))
-        Fold.apply(damage, Damage.Mutation.of(damage.value + 20))
+        Fold.apply(damage, Damage.Mutation.change(damage.value + 20))
+        Fold.apply(damage, Damage.Mutation.change(damage.value + 20))
 
         assertEquals(100L, damage.value)
         assertEquals(60L, damage.initial)
@@ -51,7 +51,7 @@ class PropertiesTest {
     fun `a veto hides the value and a reset brings the game number back`() {
         val gold = Gold(mapOf("delta" to "10"))
 
-        Fold.apply(gold, Gold.Mutation.of(99))
+        Fold.apply(gold, Gold.Mutation.change(99))
         Fold.apply(gold, Gold.Mutation.veto())
         assertEquals(true, gold.vetoed)
         assertEquals(mapOf(), Fold.verdict(gold))

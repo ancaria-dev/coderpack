@@ -19,7 +19,7 @@ import javax.annotation.Nonnull;
  * <li>{@code CHANGE} carries a value.</li>
  * </ul>
  *
- * <p>{@link #asLast()} is orthogonal to all four: it marks a mutation as the end
+ * <p>{@link #last()} is orthogonal to all four: it marks a mutation as the end
  * of the chain, so no further deciding listener sees this occurrence of the
  * event. Monitors still run. It hands the win to whoever runs earlier, which
  * priority decides and then mod load order does, so reach for
@@ -33,7 +33,11 @@ public abstract sealed class EventMutation permits Amount.Change, Pickup.Mutatio
     }
 
     private final Kind kind;
-    private final boolean last;
+
+    // Read by Fold, which is in this package, and by nothing else. A field
+    // rather than an accessor so that last() is free to be the modifier: in
+    // Java a field and a method may share a name.
+    final boolean last;
 
     // Package-private, and every subclass is nested in this package's events.
     // A mod cannot add a fifth kind.
@@ -47,15 +51,14 @@ public abstract sealed class EventMutation permits Amount.Change, Pickup.Mutatio
         return kind;
     }
 
-    /** True when no further deciding listener should see this event. */
-    public final boolean last() {
-        return last;
-    }
-
     /**
-     * The same mutation, ending the chain. Spelled this way because
-     * {@code final} is a keyword.
+     * The same mutation, ending the chain: no further deciding listener sees
+     * this occurrence of the event, though the monitors still run.
+     *
+     * <p>Named for what it is rather than for what it does, because the two
+     * words that say what it does are both keywords. {@code final} and
+     * {@code finally} cannot be method names in Java or in Kotlin.
      */
     @Nonnull
-    public abstract EventMutation asLast();
+    public abstract EventMutation last();
 }

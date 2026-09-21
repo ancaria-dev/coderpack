@@ -68,13 +68,13 @@ public final class Damage extends Amount implements Decides<Damage.Mutation> {
 
         /** The HP to store instead. Clamped to {@code [0, maxHp]}. */
         @Nonnull
-        public static Mutation of(long hp) {
+        public static Mutation change(long hp) {
             return new Mutation(Kind.CHANGE, false, hp);
         }
 
         @Override
         @Nonnull
-        public Mutation asLast() {
+        public Mutation last() {
             return new Mutation(kind(), true, value());
         }
     }

@@ -61,13 +61,13 @@ public final class Gold extends Amount implements Decides<Gold.Mutation> {
 
         /** The delta to apply instead. Negative for a purchase. */
         @Nonnull
-        public static Mutation of(long delta) {
+        public static Mutation change(long delta) {
             return new Mutation(Kind.CHANGE, false, delta);
         }
 
         @Override
         @Nonnull
-        public Mutation asLast() {
+        public Mutation last() {
             return new Mutation(kind(), true, value());
         }
     }

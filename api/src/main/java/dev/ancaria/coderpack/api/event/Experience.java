@@ -56,13 +56,13 @@ public final class Experience extends Amount implements Decides<Experience.Mutat
 
         /** The new total to store instead. */
         @Nonnull
-        public static Mutation of(long total) {
+        public static Mutation change(long total) {
             return new Mutation(Kind.CHANGE, false, total);
         }
 
         @Override
         @Nonnull
-        public Mutation asLast() {
+        public Mutation last() {
             return new Mutation(kind(), true, value());
         }
     }

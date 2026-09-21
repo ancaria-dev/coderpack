@@ -64,13 +64,13 @@ public final class Attribute extends Amount implements Decides<Attribute.Mutatio
 
         /** The value to store instead. Clamped to 0..65535. */
         @Nonnull
-        public static Mutation of(long value) {
+        public static Mutation change(long value) {
             return new Mutation(Kind.CHANGE, false, value);
         }
 
         @Override
         @Nonnull
-        public Mutation asLast() {
+        public Mutation last() {
             return new Mutation(kind(), true, value());
         }
     }

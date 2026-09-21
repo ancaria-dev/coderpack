@@ -38,7 +38,7 @@ public final class Fold {
             case VETO -> decision.vetoed(true);
             case CHANGE -> decision.change(mutation);
         }
-        if (mutation.last()) {
+        if (mutation.last) {
             decision.stopped(true);
         }
         return decision.stopped();

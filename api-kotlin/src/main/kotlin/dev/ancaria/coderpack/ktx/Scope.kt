@@ -32,7 +32,7 @@ public class On<E : Event> @PublishedApi internal constructor(
  * Says what this listener decides.
  *
  * ```
- * on<Experience> { mutate { Experience.Mutation.of(it.value * 2) } }
+ * on<Experience> { mutate { Experience.Mutation.change(it.value * 2) } }
  * ```
  *
  * In scope only when the event has something to decide: [Decides] names that
@@ -53,7 +53,7 @@ public fun <E, M : EventMutation> On<E>.mutate(build: () -> M)
  *
  * ```
  * events.on<Death> { log(it.blow) }
- * events.on<Damage>(Priority.LAST) { mutate { Damage.Mutation.of(it.maxHp) } }
+ * events.on<Damage>(Priority.LAST) { mutate { Damage.Mutation.change(it.maxHp) } }
  * ```
  *
  * Same bus, same order, same fold.

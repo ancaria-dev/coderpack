@@ -60,7 +60,7 @@ is a compile error everywhere it is not handled yet.
 | `Reset` | Discard every earlier mod's work, back to `initial`. | nothing |
 | `Veto` | This must not happen at all. | `cancel` |
 | `Change` | A value. `Experience.Mutation` and the other five. | `set.<field>` |
-| `.asLast()` | Any of the above, and the chain stops here. | as the mutation |
+| `.last()` | Any of the above, and the chain stops here. | as the mutation |
 
 `Reset` and `Veto` are different and both are needed. `Reset` puts the game's
 own number back: the damage still lands, at the size the game computed.
@@ -71,7 +71,7 @@ A veto is not sticky. A later listener can return `Reset` and lift it, which
 is the only way to lift it. One rule instead of a rule with an exception, and
 the undo is loud rather than incidental.
 
-`asLast()` is the answer to "my mod is authoritative here". It is blunt on
+`last()` is the answer to "my mod is authoritative here". It is blunt on
 purpose, and it hands the win to whoever runs earlier, which is decided by
 priority and then by mod load order — alphabetical by jar filename. Reach for
 `Priority` first.
@@ -93,7 +93,7 @@ counter or a statistics mod belongs, and a `MONITOR` listener that returns a
 mutation is a lint error at mod build time and an ignored value with one
 warning at run time.
 
-`asLast()` does not skip the `MONITOR` step. A mod may cut the deciding short;
+`last()` does not skip the `MONITOR` step. A mod may cut the deciding short;
 it may not blind the trackers. Whatever the monitors see is the final state,
 including who ended the chain.
 
@@ -108,7 +108,7 @@ shapes without becoming ambiguous:
 
 ```java
 events.on(Experience.class, e -> log(e.gain()));
-events.decide(Experience.class, e -> Experience.Mutation.of(e.value() * 2));
+events.decide(Experience.class, e -> Experience.Mutation.change(e.value() * 2));
 ```
 
 `decide` is closed statically: it takes an `E extends Decides<M>` and returns
@@ -133,7 +133,7 @@ failure this design exists to remove.
 
 Nothing here changes the protocol. The host and the agent still receive
 `cancel` or a set of `set.<field>` entries, and every case above collapses
-into one of those. `asLast()`, `Reset` and `None` are decided on the JVM and
+into one of those. `last()`, `Reset` and `None` are decided on the JVM and
 are never seen by the game.
 
 A `Change` turns into wire fields through a package-private method on the

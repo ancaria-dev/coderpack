@@ -213,7 +213,7 @@ The typed read-only events are `LevelUp`, `Hero`, `World`, `Position`, `Moved`,
 An event is immutable to a mod. What a listener may do is its return type:
 `void` observes, and anything else must be that event's `Mutation`, which
 `Bus.register` checks and the mod linter checks earlier. `EventMutation` is
-sealed with four kinds, `NONE`, `RESET`, `VETO` and `CHANGE`, plus `asLast()`
+sealed with four kinds, `NONE`, `RESET`, `VETO` and `CHANGE`, plus `last()`
 across all four. `Fold` applies one answer and is the only thing that writes to
 an event; there is no `Guard` any more, because there is no write to guard.
 
@@ -225,7 +225,7 @@ calling the next listener, which is what makes `Amount.value()` mean "with
 everyone before me in it" and what lets two mods scaling the same number
 compose. A veto does not stop later listeners; `ignoreVetoed = true` skips a
 listener once an earlier one has vetoed, and only a later `RESET` lifts it.
-`asLast()` ends the deciding but never skips the `MONITOR` step. A `MONITOR`
+`last()` ends the deciding but never skips the `MONITOR` step. A `MONITOR`
 listener that returns a mutation has it dropped with one warning.
 
 The API uses JSR 305 nullability annotations. Each of its three packages has a

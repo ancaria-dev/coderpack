@@ -118,7 +118,7 @@ class BusTest {
 
         @Subscribe
         public Gold.Mutation decide(Gold event) {
-            return Gold.Mutation.of(200);
+            return Gold.Mutation.change(200);
         }
 
         /**
@@ -151,7 +151,7 @@ class BusTest {
 
         @Subscribe
         public Gold.Mutation twice(Gold event) {
-            return Gold.Mutation.of(event.value() * 2);
+            return Gold.Mutation.change(event.value() * 2);
         }
     }
 
@@ -172,7 +172,7 @@ class BusTest {
     void resetDiscardsEarlierWorkAndLiftsAVeto() {
         Bus bus = new Bus();
         Events events = events(bus, "fold");
-        events.decide(Gold.class, Priority.FIRST, e -> Gold.Mutation.of(200));
+        events.decide(Gold.class, Priority.FIRST, e -> Gold.Mutation.change(200));
         events.decide(Gold.class, Priority.NORMAL, e -> Gold.Mutation.veto());
         events.decide(Gold.class, Priority.LAST, e -> Gold.Mutation.reset());
         Gold event = gold();
@@ -189,11 +189,11 @@ class BusTest {
         List<String> seen = new ArrayList<>();
         events.decide(Gold.class, Priority.FIRST, e -> {
             seen.add("first");
-            return Gold.Mutation.of(200).asLast();
+            return Gold.Mutation.change(200).last();
         });
         events.decide(Gold.class, Priority.NORMAL, e -> {
             seen.add("normal");
-            return Gold.Mutation.of(999);
+            return Gold.Mutation.change(999);
         });
         events.on(Gold.class, Priority.MONITOR, e -> seen.add("monitor:" + e.value()));
         Gold event = gold();
@@ -338,7 +338,7 @@ class BusTest {
     void aLambdaMonitorChangesNothingEither() {
         Bus bus = new Bus();
         Events events = events(bus, "lambda");
-        events.decide(Gold.class, e -> Gold.Mutation.of(200));
+        events.decide(Gold.class, e -> Gold.Mutation.change(200));
         events.decide(Gold.class, Priority.MONITOR, e -> Gold.Mutation.veto());
         Gold event = gold();
         bus.dispatch(event);

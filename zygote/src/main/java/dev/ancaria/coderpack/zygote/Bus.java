@@ -312,6 +312,7 @@ final class Bus {
      * silent overwrite this design exists to remove.
      */
     private static void fold(Listener listener, Decision decision, EventMutation answer) {
+        boolean wasOpen = !Fold.stopped(decision);
         switch (answer.kind()) {
             case RESET -> Log.warn(listener.name + " reset "
                                    + decision.getClass().getSimpleName()
@@ -321,7 +322,7 @@ final class Bus {
             default -> {
             }
         }
-        if (Fold.apply(decision, answer) && answer.last()) {
+        if (Fold.apply(decision, answer) && wasOpen) {
             Log.warn(listener.name + " ended the chain on "
                      + decision.getClass().getSimpleName()
                      + "; later deciding listeners were skipped.");

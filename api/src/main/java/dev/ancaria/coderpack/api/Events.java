@@ -86,7 +86,7 @@ public interface Events {
      * Registers a listener that decides, at {@link Priority#NORMAL} and hearing
      * about vetoed events.
      *
-     * <pre>{@code events.decide(Experience.class, e -> Experience.Mutation.of(e.value() * 2));}</pre>
+     * <pre>{@code events.decide(Experience.class, e -> Experience.Mutation.change(e.value() * 2));}</pre>
      *
      * <p>This is the one method {@code on} cannot be: two overloads split by
      * lambda return type are ambiguous in Java, and in Kotlin the losing one
