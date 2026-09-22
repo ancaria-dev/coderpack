@@ -3,6 +3,8 @@ package dev.ancaria.coderpack.ktx
 import dev.ancaria.coderpack.api.event.Attribute
 import dev.ancaria.coderpack.api.event.AttributeChanged
 import dev.ancaria.coderpack.api.event.AttributePointsChanged
+import dev.ancaria.coderpack.api.event.CombatArt
+import dev.ancaria.coderpack.api.event.CombatArtChanged
 import dev.ancaria.coderpack.api.event.Experience
 import dev.ancaria.coderpack.api.event.ExperienceChanged
 import dev.ancaria.coderpack.api.event.Gold
@@ -86,3 +88,26 @@ public inline val AttributePointsChanged.previous: Int get() = previous()
 public inline val AttributePointsChanged.points: Int get() = points()
 
 public inline val AttributePointsChanged.granted: Boolean get() = granted()
+
+// Combat arts. An art is (artId, aspect), never the id alone: ids are per class.
+
+public inline val CombatArt.index: Int get() = index()
+
+public inline val CombatArt.artId: Int get() = artId()
+
+public inline val CombatArt.aspect: Int get() = aspect()
+
+/** The base level before this rune. */
+public inline val CombatArt.previous: Long get() = previous()
+
+public inline val CombatArt.step: Long get() = step()
+
+public inline val CombatArtChanged.index: Int get() = index()
+
+public inline val CombatArtChanged.artId: Int get() = artId()
+
+public inline val CombatArtChanged.aspect: Int get() = aspect()
+
+public inline val CombatArtChanged.previous: Int get() = previous()
+
+public inline val CombatArtChanged.level: Int get() = level()

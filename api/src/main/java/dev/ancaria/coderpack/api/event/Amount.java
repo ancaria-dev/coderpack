@@ -25,7 +25,7 @@ import javax.annotation.Nonnull;
  * own named getters say which.
  */
 public abstract sealed class Amount extends Decision
-        permits Attribute, Damage, Experience, Gold, Skill {
+        permits Attribute, CombatArt, Damage, Experience, Gold, Skill {
 
     private final String key;
     private long value;
@@ -63,13 +63,13 @@ public abstract sealed class Amount extends Decision
     }
 
     /**
-     * The shape the five numeric mutations share. Each event still declares its
+     * The shape the six numeric mutations share. Each event still declares its
      * own subclass, so the compiler keeps a {@link Gold} answer out of a
      * {@link Damage} listener.
      */
     public abstract static sealed class Change extends EventMutation
-            permits Attribute.Mutation, Damage.Mutation, Experience.Mutation,
-                    Gold.Mutation, Skill.Mutation {
+            permits Attribute.Mutation, CombatArt.Mutation, Damage.Mutation,
+                    Experience.Mutation, Gold.Mutation, Skill.Mutation {
 
         private final long value;
 

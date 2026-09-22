@@ -1,5 +1,6 @@
 package dev.ancaria.coderpack.zygote;
 
+import dev.ancaria.coderpack.api.event.CombatArt;
 import dev.ancaria.coderpack.api.event.Fold;
 import dev.ancaria.coderpack.api.event.Gold;
 import org.junit.jupiter.api.Test;
@@ -55,5 +56,13 @@ class VerdictTest {
     void aChangeBackToTheArrivedValueSaysNothing() {
         Gold event = folded(gold(), Gold.Mutation.change(100));
         assertEquals("END 7 ok=1", Verdict.of(7, event).encode());
+    }
+
+    @Test
+    void aCombatArtAnswersWithTheLevelToStore() {
+        CombatArt art = new CombatArt(Map.of("index", "3", "id", "67", "aspect", "0",
+                "prev", "13", "next", "14", "step", "1"));
+        Fold.apply(art, CombatArt.Mutation.change(art.value() + 1));
+        assertEquals("END 9 set.next=15", Verdict.of(9, art).encode());
     }
 }

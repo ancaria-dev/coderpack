@@ -44,7 +44,9 @@ class RegistryTest {
                 "entity.despawn",
                 "journal.kill",
                 "journal.resurrection",
-                "journal.discovery");
+                "journal.discovery",
+                "art.raise",
+                "art.changed");
         for (String name : sent) {
             assertFalse(build(name, Map.of()) instanceof Unknown, name);
         }

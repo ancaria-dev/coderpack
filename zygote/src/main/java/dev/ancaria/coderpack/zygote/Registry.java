@@ -3,6 +3,8 @@ package dev.ancaria.coderpack.zygote;
 import dev.ancaria.coderpack.api.event.Attribute;
 import dev.ancaria.coderpack.api.event.AttributeChanged;
 import dev.ancaria.coderpack.api.event.AttributePointsChanged;
+import dev.ancaria.coderpack.api.event.CombatArt;
+import dev.ancaria.coderpack.api.event.CombatArtChanged;
 import dev.ancaria.coderpack.api.event.Damage;
 import dev.ancaria.coderpack.api.event.Death;
 import dev.ancaria.coderpack.api.event.Despawn;
@@ -83,6 +85,8 @@ final class Registry {
             Map.entry("journal.kill", Kill::new),
             Map.entry("journal.resurrection", Resurrection::new),
             Map.entry("journal.discovery", Discovery::new),
+            Map.entry("art.raise", CombatArt::new),
+            Map.entry("art.changed", CombatArtChanged::new),
             Map.entry("session.detached", f -> new World(World.Phase.DETACHED, f)));
 
     private Registry() {
