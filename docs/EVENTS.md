@@ -1,9 +1,8 @@
 # Events
 
 This is the contract mods are written against. `api` implements it. The fold
-that makes `value()` mean what it says lives in the bus, and `zygote`,
-`api-kotlin`, the mod linter in `build` and the four mods have not caught up
-yet.
+that makes `value()` mean what it says lives in the bus in `zygote`.
+`api-kotlin`, the mod linter in `build` and the four mods follow it.
 
 ## Two kinds of listener
 
@@ -11,8 +10,8 @@ A listener is a method taking one event. What it returns decides what it may
 do, and nothing else does:
 
 ```java
-@Subscribe void onXp(Experience e)                  { log(e.gain()); }
-@Subscribe Experience.Mutation onXp(Experience e)   { return ...; }
+@Subscribe public void onXp(Experience e)                { context.log("xp " + e.gain()); }
+@Subscribe public Experience.Mutation onXp(Experience e) { return ...; }
 ```
 
 A `void` listener is an observer by construction. There is no flag to set and
@@ -107,7 +106,7 @@ Java has two methods, because one overloaded name cannot carry both lambda
 shapes without becoming ambiguous:
 
 ```java
-events.on(Experience.class, e -> log(e.gain()));
+events.on(Experience.class, e -> context.log("xp " + e.gain()));
 events.decide(Experience.class, e -> Experience.Mutation.change(e.value() * 2));
 ```
 
@@ -118,8 +117,8 @@ type is pinned to that event's own `Mutation`.
 Kotlin has one `on`, through a scope receiver rather than an overload:
 
 ```kotlin
-on<Experience> { log(gain) }
-on<Experience> { mutate { value = value * 2 } }
+on<Experience> { log("xp ${it.gain}") }
+on<Experience> { mutate { Experience.Mutation.change(it.value * 2) } }
 on<Death>      { mutate { ... } }              // does not compile
 ```
 
