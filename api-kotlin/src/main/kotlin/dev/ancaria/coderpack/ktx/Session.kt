@@ -1,11 +1,14 @@
 package dev.ancaria.coderpack.ktx
 
+import dev.ancaria.coderpack.api.entity.Creature
 import dev.ancaria.coderpack.api.entity.HeroClass
+import dev.ancaria.coderpack.api.event.Despawn
 import dev.ancaria.coderpack.api.event.Hero
 import dev.ancaria.coderpack.api.event.LevelUp
 import dev.ancaria.coderpack.api.event.Position
 import dev.ancaria.coderpack.api.event.Region
 import dev.ancaria.coderpack.api.event.Sector
+import dev.ancaria.coderpack.api.event.Spawn
 import dev.ancaria.coderpack.api.event.Unknown
 import dev.ancaria.coderpack.api.event.World
 
@@ -58,6 +61,10 @@ public inline val Region.from: Int get() = from()
 public inline val Sector.x: Int get() = x()
 
 public inline val Sector.y: Int get() = y()
+
+public inline val Spawn.creature: Creature get() = creature()
+
+public inline val Despawn.creature: Creature get() = creature()
 
 /** The wire name of an event no SDK type covers yet. */
 public inline val Unknown.name: String get() = name()

@@ -39,7 +39,9 @@ class RegistryTest {
                 "item.equip", "item.moved",
                 "world.region_enter",
                 "world.region_exit",
-                "world.sector_enter");
+                "world.sector_enter",
+                "entity.spawn",
+                "entity.despawn");
         for (String name : sent) {
             assertFalse(build(name, Map.of()) instanceof Unknown, name);
         }

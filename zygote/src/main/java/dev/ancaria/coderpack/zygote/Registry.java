@@ -5,6 +5,7 @@ import dev.ancaria.coderpack.api.event.AttributeChanged;
 import dev.ancaria.coderpack.api.event.AttributePointsChanged;
 import dev.ancaria.coderpack.api.event.Damage;
 import dev.ancaria.coderpack.api.event.Death;
+import dev.ancaria.coderpack.api.event.Despawn;
 import dev.ancaria.coderpack.api.event.Equip;
 import dev.ancaria.coderpack.api.event.Event;
 import dev.ancaria.coderpack.api.event.Experience;
@@ -26,6 +27,7 @@ import dev.ancaria.coderpack.api.event.Sector;
 import dev.ancaria.coderpack.api.event.Skill;
 import dev.ancaria.coderpack.api.event.SkillChanged;
 import dev.ancaria.coderpack.api.event.SkillPointsChanged;
+import dev.ancaria.coderpack.api.event.Spawn;
 import dev.ancaria.coderpack.api.event.Stored;
 import dev.ancaria.coderpack.api.event.Unknown;
 import dev.ancaria.coderpack.api.event.World;
@@ -73,6 +75,8 @@ final class Registry {
             Map.entry("world.region_enter", f -> new Region(true, f)),
             Map.entry("world.region_exit", f -> new Region(false, f)),
             Map.entry("world.sector_enter", Sector::new),
+            Map.entry("entity.spawn", Spawn::new),
+            Map.entry("entity.despawn", Despawn::new),
             Map.entry("session.detached", f -> new World(World.Phase.DETACHED, f)));
 
     private Registry() {
