@@ -28,6 +28,8 @@ const build = JSON.parse(
 const addr = fs.readFileSync(path.join(AGENT, "gen", "addr.js"), "utf8");
 const core = fs.readFileSync(path.join(AGENT, "10-core.js"), "utf8");
 const RVA = vm.runInNewContext(addr + "\nRVA;");
+// However many sites the registry hooks today.
+const SITES = Object.keys(build.sig).length;
 
 // A process whose memory holds exactly the bytes the signatures describe, and
 // nothing else: reading anywhere the harness did not write is an unmapped page,
@@ -102,7 +104,7 @@ check("a changed site is reported", other.length === 3);
 check("the warning names the expected build",
       warning.includes(build.exe + " " + build.version));
 check("the warning names what was found", warning.includes("Sacred.exe"));
-check("the warning counts the sites", warning.includes("3 of 20 hook sites"));
+check("the warning counts the sites", warning.includes("3 of " + SITES + " hook sites"));
 check("the warning names the sites that moved",
       [...moved].every((name) => warning.includes(name)));
 check("the warning says what it means for mods",
@@ -117,7 +119,7 @@ for (const name of ["hpDamage", "goldDelta"]) {
 }
 const tiny = attach(empty);
 check("an unreadable site is a mismatch, not a crash",
-      tiny.join("\n").includes("20 of 20 hook sites"));
+      tiny.join("\n").includes(SITES + " of " + SITES + " hook sites"));
 
 // An agent bundled from a release older than the fingerprint has no BUILD, and
 // has to load anyway rather than refusing on a missing table.
