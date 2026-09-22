@@ -21,6 +21,8 @@ import dev.ancaria.coderpack.api.event.Moved;
 import dev.ancaria.coderpack.api.event.NearDeath;
 import dev.ancaria.coderpack.api.event.Pickup;
 import dev.ancaria.coderpack.api.event.Position;
+import dev.ancaria.coderpack.api.event.Region;
+import dev.ancaria.coderpack.api.event.Sector;
 import dev.ancaria.coderpack.api.event.Skill;
 import dev.ancaria.coderpack.api.event.SkillChanged;
 import dev.ancaria.coderpack.api.event.SkillPointsChanged;
@@ -68,6 +70,9 @@ final class Registry {
             Map.entry("session.world_loaded", f -> new World(World.Phase.LOADED, f)),
             Map.entry("session.hero_loaded", f -> new World(World.Phase.HERO_LOADED, f)),
             Map.entry("session.hero_terminated", f -> new World(World.Phase.HERO_TERMINATED, f)),
+            Map.entry("world.region_enter", f -> new Region(true, f)),
+            Map.entry("world.region_exit", f -> new Region(false, f)),
+            Map.entry("world.sector_enter", Sector::new),
             Map.entry("session.detached", f -> new World(World.Phase.DETACHED, f)));
 
     private Registry() {

@@ -36,7 +36,10 @@ class RegistryTest {
                 "skill.change", "skill.changed", "skillpoints.changed",
                 "attr.spend", "attr.changed", "attrpoints.changed",
                 "level.changed", "pos.changed", "item.pickup", "item.stored",
-                "item.equip", "item.moved");
+                "item.equip", "item.moved",
+                "world.region_enter",
+                "world.region_exit",
+                "world.sector_enter");
         for (String name : sent) {
             assertFalse(build(name, Map.of()) instanceof Unknown, name);
         }

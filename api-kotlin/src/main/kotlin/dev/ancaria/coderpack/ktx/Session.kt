@@ -4,6 +4,8 @@ import dev.ancaria.coderpack.api.entity.HeroClass
 import dev.ancaria.coderpack.api.event.Hero
 import dev.ancaria.coderpack.api.event.LevelUp
 import dev.ancaria.coderpack.api.event.Position
+import dev.ancaria.coderpack.api.event.Region
+import dev.ancaria.coderpack.api.event.Sector
 import dev.ancaria.coderpack.api.event.Unknown
 import dev.ancaria.coderpack.api.event.World
 
@@ -44,6 +46,18 @@ public inline val Position.y: Int get() = y()
 public inline val Position.hudX: Int get() = hudX()
 
 public inline val Position.hudY: Int get() = hudY()
+
+/** A map cell id, not a named area. */
+public inline val Region.id: Int get() = id()
+
+public inline val Region.entered: Boolean get() = entered()
+
+/** On entry, the region the hero came from, or 0 when unknown. */
+public inline val Region.from: Int get() = from()
+
+public inline val Sector.x: Int get() = x()
+
+public inline val Sector.y: Int get() = y()
 
 /** The wire name of an event no SDK type covers yet. */
 public inline val Unknown.name: String get() = name()
