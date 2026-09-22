@@ -134,14 +134,14 @@ required. The generated descriptor also contains `api`, while `loader` is
 optional:
 
 ```toml
-api = "1"
+api = "[2,3)"
 loader = "[0.1.20,)"
 ```
 
 Both fields use the Maven range notation documented by `Ranges`, which is also
 the notation NeoForge writes in `mods.toml`. The current Gradle plugin writes
-`api = "1"` by default, meaning exactly API contract 1. A mod can declare a
-different range such as `[1,2)` through `apiRange`, but that range must include
+`api = "[2,3)"` by default, meaning API contract 2 and no other major. A mod can
+declare a different range such as `[2,4)` through `apiRange`, but that range must include
 the contract used by the toolchain. The exact meaning of a bare value is a
 deliberate difference from Maven’s soft bare-version rule and preserves older
 descriptors.
@@ -177,10 +177,10 @@ running dispatch uses an immutable listener snapshot.
 
 Commands sent through `context.game()` wait up to two seconds for a `RES`.
 Timeout, interruption, or another command failure logs a warning and returns
-an empty result. Veto events stop the game thread while the host waits. Its
+an empty result. Decidable events stop the game thread while the host waits. Its
 250 ms deadline is checked by a 125 ms watchdog, so an unanswered fallback is
 normally queued about 250 to 375 ms after the ask, plus scheduler and posting
-delay. Keep veto listeners short and do not treat 250 ms as a strict maximum
+delay. Keep listeners on those events short and do not treat 250 ms as a strict maximum
 block time.
 
 The API contract number exists in three repositories that cannot import one
