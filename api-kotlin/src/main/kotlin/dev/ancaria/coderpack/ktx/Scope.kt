@@ -52,7 +52,7 @@ public fun <E, M : EventMutation> On<E>.mutate(build: () -> M)
  * `Class` the Java call needs:
  *
  * ```
- * events.on<Death> { log(it.blow) }
+ * events.on<Death> { context.log("blow ${it.blow}") }
  * events.on<Damage>(Priority.LAST) { mutate { Damage.Mutation.change(it.maxHp) } }
  * ```
  *

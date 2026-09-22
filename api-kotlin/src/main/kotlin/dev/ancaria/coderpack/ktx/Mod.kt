@@ -15,7 +15,7 @@ import dev.ancaria.coderpack.api.SacredMod as ApiMod
  *
  *     override fun Context.load() {
  *         events {
- *             on<Gold> { it.delta = it.delta * 3 / 2 }
+ *             on<Gold> { mutate { Gold.Mutation.change(it.value * 3 / 2) } }
  *         }
  *         log("Loaded.")
  *     }
