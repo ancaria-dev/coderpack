@@ -19,7 +19,7 @@ Java-Mods für Sacred Gold, das Action-RPG aus dem Jahr 2004.
 Coderpack klinkt sich in das laufende Spiel ein und leitet aus dem Spielcode
 Ereignisse ab. Ein Mod abonniert nur die Ereignisse, die er braucht. Einige
 treten auf, bevor das Spiel einen Wert schreibt. Dort kann der Mod den Wert
-ändern oder den Schreibvorgang abbrechen. Die Dateien im Spielordner bleiben
+ändern oder per Veto verhindern. Die Dateien im Spielordner bleiben
 unverändert. Beim Beenden des Spiels verschwinden auch die Hooks.
 
 ## Mod schreiben
@@ -29,7 +29,7 @@ Gradle-Plugin aus [ancaria-dev/build](https://github.com/ancaria-dev/build):
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.100.0"
+    id("dev.ancaria.coderpack") version "0.101.0"
 }
 
 version = "1.0.0"
@@ -53,15 +53,15 @@ Mods in derselben JAR-Datei. `apiVersion` fügt
 die API bereits im Classpath bereitstellt. Die Prüfung weist eine Mod-JAR ab,
 wenn sie trotzdem Klassen der Loader-API enthält.
 
-Im Deskriptor steht außerdem `api = "1"`. Das Feld wird vom Plugin erzeugt und
+Im Deskriptor steht außerdem `api = "[2,3)"`. Das Feld wird vom Plugin erzeugt und
 bezeichnet den API-Vertrag, nicht die Artefaktversion. Das Artefakt
 `dev.ancaria.coderpack:api` hat die Version 0.102.0 und ändert sich mit einem
-Release. `Api.VERSION` steht derzeit auf `1` und wird erst erhöht, wenn ein gegen
+Release. `Api.VERSION` steht derzeit auf `2` und wird erst erhöht, wenn ein gegen
 den bisherigen Vertrag kompilierter Mod mit der neuen API nicht mehr
 funktioniert.
 
-Der Loader wertet `api` als Versionsbereich aus. Der Wert `"1"` meint exakt
-Vertrag 1. Bereiche wie `"[1,2)"` sind ebenfalls zulässig. Fehlt das Feld, ist
+Der Loader wertet `api` als Versionsbereich aus. Der Wert `"2"` meint exakt
+Vertrag 2. Bereiche wie `"[2,3)"` sind ebenfalls zulässig. Fehlt das Feld, ist
 der Bereich ungültig oder umfasst er `Api.VERSION` nicht, verweigert der Loader
 den Start und protokolliert den Grund. Mit `apiRange` kann ein Mod einen anderen
 Bereich angeben, solange er den Vertrag dieses Toolchains enthält. `loaderRange`
@@ -102,40 +102,47 @@ public final class DoubleGold implements SacredMod {
     }
 
     @Subscribe
-    public void onGold(Gold event) {
-        if (!event.spending()) {
-            event.delta(event.delta() * 2);   // umgeschrieben, bevor das Spiel schreibt
+    public Gold.Mutation onGold(Gold event) {
+        if (event.spending()) {
+            return Gold.Mutation.none();
         }
+        return Gold.Mutation.change(event.value() * 2);   // entschieden, bevor das Spiel schreibt
     }
 }
 ```
 
-Eine unterstützte Listener-Methode mit `@Subscribe` ist öffentlich, gibt nichts
-zurück und nimmt genau ein Ereignis entgegen. Der Parametertyp bestimmt das
-Abonnement. Ein separater Ereignisname muss daher nirgends gepflegt werden. Für
-dynamische Registrierung gibt `context.events().on(...)` ein `Handle` zurück,
-mit dem sich der Listener wieder entfernen lässt.
+Eine unterstützte Listener-Methode mit `@Subscribe` ist öffentlich und nimmt
+genau ein Ereignis entgegen. Der Parametertyp bestimmt das Abonnement. Ein
+separater Ereignisname muss daher nirgends gepflegt werden. Der Rückgabetyp
+legt fest, was die Methode darf. Mit `void` beobachtet sie nur. Eine Methode,
+die entscheidet, gibt die `Mutation` ihres Ereignisses zurück: `none()`,
+`reset()`, `veto()` oder einen neuen Wert wie `change(value)`. Ereignisse sind
+nur lesbar, eine Mutation zurückzugeben ist der einzige Weg, eines zu ändern.
+Für dynamische Registrierung gibt es `context.events().on(...)` für einen
+Beobachter und `decide(...)` für einen entscheidenden Listener. Beide geben ein
+`Handle` zurück, mit dem sich der Listener wieder entfernen lässt.
 
 `@Subscribe` regelt auch die Reihenfolge. `priority` legt die Stufe fest:
 `FIRST`, `NORMAL` als Standard, `LAST` und anschließend `MONITOR`. Innerhalb
-einer Stufe gilt die Registrierungsreihenfolge. Ein Abbruch beendet die
-Auslieferung nicht. Mit `ignoreCancelled = true` überspringt der Loader den
-Listener, sobald das Ereignis bereits abgebrochen wurde. Ohne diese Option
-erhält er das Ereignis weiterhin, was etwa zum Rückgängigmachen eigener
-Nebenwirkungen nötig sein kann.
+einer Stufe gilt die Registrierungsreihenfolge. Der Loader verrechnet jede
+Antwort, bevor der nächste Listener läuft, daher enthält `value()` alle
+vorherigen Entscheidungen. Ein Veto beendet die Auslieferung nicht. Mit
+`ignoreVetoed = true` überspringt der Loader den Listener, sobald ein früherer
+ein Veto eingelegt hat. Ohne diese Option erhält er das Ereignis weiterhin, was
+etwa zum Rückgängigmachen eigener Nebenwirkungen nötig sein kann.
 
 `MONITOR` dient nur zur Beobachtung. Der Listener sieht das Ergebnis aller
-vorherigen Entscheidungen. Versucht er das Ereignis abzubrechen oder
-umzuschreiben, verwirft der Bus die Änderung und protokolliert den Versuch
-einmal für diesen Listener.
+vorherigen Entscheidungen und muss `void` zurückgeben. Der Mod-Linter weist
+eine `MONITOR`-Methode ab, die eine Mutation zurückgibt, und der Loader
+verwirft eine solche Mutation mit einer Warnung.
 
-Sechs Ereignisse lassen sich umschreiben oder abbrechen: `Gold`, `Experience`,
+Sechs Ereignisse lassen sich entscheiden: `Gold`, `Experience`,
 `Damage`, `Skill`, `Attribute` und `Pickup`. Der Rest meldet etwas, das schon
 passiert ist, und ist nur lesbar: `LevelUp`, `Hero`, `World`, `Position`,
 `Moved`, `Death`, `NearDeath`, `MobHit`, `MobDeath`, `Equip`, `Stored`. Was wohin
 gehört, ergibt sich aus der Stelle des Hooks. Ein Veto ist nur möglich, wenn der
 Hook vor dem Schreibzugriff sitzt und Coderpack den betreffenden Wert ändern
-kann.
+kann. Den vollständigen Vertrag beschreibt [docs/EVENTS.md](docs/EVENTS.md).
 
 Für Ereignisse ohne eigenen API-Typ gibt es `Unknown`. Es enthält den Namen aus
 dem Protokoll und die unverarbeiteten Felder, sodass Listener auf `Event` auch
@@ -147,11 +154,13 @@ dem zuletzt von Coderpack beobachteten Zustand und den Aktionen `teleport`,
 `uiString`, `typeName`, `typeId` und `types` greifen auf die
 Nachschlagetabellen des Spiels zu. Mit `retype` lässt sich die Typbezeichnung
 eines Gegenstands dauerhaft ändern. Name und Darstellung ändern sich, das
-ursprüngliche Verhalten und die Modifikatoren bleiben erhalten.
+ursprüngliche Verhalten und die Modifikatoren bleiben erhalten. `reshape` macht
+einen Gegenstand zur Kopie eines anderen, samt Modifikatoren.
 
-Während ein Veto-Listener läuft, wartet der Spiel-Thread auf die Antwort. Solche
-Listener müssen kurz bleiben. Nach 250 ms beendet der Host die Wartezeit und
-lässt den ursprünglichen Wert passieren. Aufrufe über `context.game()` warten
+Während die Listener eines entscheidbaren Ereignisses laufen, wartet der
+Spiel-Thread auf die Antwort. Solche Listener müssen kurz bleiben. Die Frist
+des Hosts beträgt 250 ms und wird alle 125 ms geprüft. Ist sie abgelaufen,
+lässt der Host den ursprünglichen Wert passieren. Aufrufe über `context.game()` warten
 höchstens zwei Sekunden auf eine Antwort des Agents.
 
 ### Protokollierung
@@ -190,14 +199,15 @@ package com.example
 import dev.ancaria.coderpack.api.Context
 import dev.ancaria.coderpack.api.event.Gold
 import dev.ancaria.coderpack.ktx.SacredMod
-import dev.ancaria.coderpack.ktx.delta
+import dev.ancaria.coderpack.ktx.mutate
 import dev.ancaria.coderpack.ktx.on
 import dev.ancaria.coderpack.ktx.spending
+import dev.ancaria.coderpack.ktx.value
 
 class DoubleGold : SacredMod() {
 
     override fun Context.load() {
-        on<Gold> { if (!it.spending) it.delta *= 2 }
+        on<Gold> { if (!it.spending) mutate { Gold.Mutation.change(it.value * 2) } }
     }
 }
 ```
@@ -206,10 +216,10 @@ Drei Dinge tun dort die Arbeit. `SacredMod` ist die abstrakte Klasse aus
 `…ktx`; sie hält den Context und übergibt ihn `load` als Receiver, sodass `on`
 und `log` ohne Präfix stehen. `on<Gold>` nimmt das Ereignis als Typargument
 statt als Klassenliteral, und `events { }` fasst mehrere solcher Aufrufe zu
-einem Block zusammen. Und ein Feld, das die API überschreiben lässt, ist ein
-`var`, worin die ganze Änderung `it.delta *= 2` besteht. Felder, die die API
-nicht überschreiben lässt, `Gold.current` darunter, bleiben auch hier nur
-lesbar.
+einem Block zusammen. Und mit `mutate { }` entscheidet der Rumpf. Es existiert
+nur für Ereignisse, die sich entscheiden lassen, daher kompiliert
+`on<Death> { mutate { ... } }` nicht. Jede Eigenschaft ist ein nur lesbares
+`val`, `it.value` darunter.
 
 `@Subscribe` funktioniert genau wie aus Java, und
 `dev.ancaria.coderpack.api.SacredMod` direkt zu implementieren ebenfalls.

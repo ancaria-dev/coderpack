@@ -18,7 +18,7 @@ Write Java mods for Sacred Gold, the 2004 action RPG.
 
 Coderpack attaches to the running game and turns selected operations into
 events. A mod subscribes to the events it needs. Events fired before a game
-write can be changed or cancelled. Coderpack never patches files in the game
+write can be changed or vetoed. Coderpack never patches files in the game
 directory. Its hooks disappear when the game closes.
 
 ## Writing a mod
@@ -28,7 +28,7 @@ A mod is a JAR file installed in `<Sacred Gold>/mods`. The Gradle plugin from
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.100.0"
+    id("dev.ancaria.coderpack") version "0.101.0"
 }
 
 version = "1.0.0"
@@ -50,14 +50,14 @@ sacred {
 The loader supplies the API at runtime, and the verifier rejects mod JARs that
 contain loader API classes.
 
-By default, the descriptor contains `api = "1"`. This is the API contract
+By default, the descriptor contains `api = "[2,3)"`. This is the API contract
 range checked before the loader starts the mod. It is separate from the
 `dev.ancaria.coderpack:api` artifact version, currently `0.102.0`. The artifact
 version can change with each release. The contract changes only when a mod
 compiled against the previous API would break.
 
 Set `apiRange` when a mod supports a different range of contracts, for example
-`apiRange = "[1,2)"`. The range must include the contract used by the
+`apiRange = "[2,4)"`. The range must include the contract used by the
 toolchain. `loaderRange` can restrict the Sacred Mod Loader releases that may
 run the mod. If either range excludes the current version, the launcher lists
 the mod but disables its checkbox and shows the refusal reason. The JVM loader
@@ -93,44 +93,52 @@ public final class DoubleGold implements SacredMod {
     }
 
     @Subscribe
-    public void onGold(Gold event) {
-        if (!event.spending()) {
-            event.delta(event.delta() * 2);   // rewritten before the game stores it
+    public Gold.Mutation onGold(Gold event) {
+        if (event.spending()) {
+            return Gold.Mutation.none();
         }
+        return Gold.Mutation.change(event.value() * 2);   // decided before the game stores it
     }
 }
 ```
 
-A supported listener method is public, returns `void`, and takes exactly one
-event parameter. The parameter type selects the event, so there is no separate
-event name to maintain. For dynamic registration, `context.events().on(...)`
-returns a `Handle` that can unregister the listener.
+A supported listener method is public and takes exactly one event parameter.
+The parameter type selects the event, so there is no separate event name to
+maintain. The return type says what the method may do. `void` only observes.
+A method that decides returns that event’s own `Mutation`: `none()`,
+`reset()`, `veto()`, or a new value such as `change(value)`. Events are read-only, so returning a
+mutation is the only way to change one. For dynamic registration,
+`context.events().on(...)` registers an observer and `decide(...)` a decider.
+Both return a `Handle` that can unregister the listener.
 
 The `priority` value on `@Subscribe` controls dispatch order: `FIRST`, `NORMAL` by default,
 `LAST`, then `MONITOR`. Registration order decides the order within one
-priority. Cancellation does not stop dispatch. With
-`ignoreCancelled = true`, a listener is skipped if an earlier listener
-cancelled the event. A `MONITOR` listener sees the final decision, but its own
-cancellations and rewrites are discarded. The loader logs the first such
-attempt once per listener.
+priority. The loader folds each answer in before the next listener runs, so
+`value()` includes every earlier decision. A veto does not stop dispatch. With
+`ignoreVetoed = true`, a listener is skipped if an earlier listener vetoed the
+event. A `MONITOR` listener sees the final decision and must return `void`. The
+mod linter rejects a `MONITOR` method that returns a mutation, and the loader
+drops such a mutation with one warning.
 
-Six events can be rewritten or cancelled: `Gold`, `Experience`, `Damage`,
-`Skill`, `Attribute`, and `Pickup`. Read-only events report something that has
+Six events can be decided: `Gold`, `Experience`, `Damage`, `Skill`,
+`Attribute`, and `Pickup`. Read-only events report something that has
 already happened: `LevelUp`, `Hero`, `World`, `Position`, `Moved`, `Death`,
 `NearDeath`, `MobHit`, `MobDeath`, `Equip`, `Stored`, and `Unknown`. The hook
-position determines which events are vetoable. A veto works only when the hook
-runs before the game writes the value.
+position determines which events are decidable. A veto works only when the hook
+runs before the game writes the value. [docs/EVENTS.md](docs/EVENTS.md)
+describes the contract in full.
 
 Use `context.game()` for direct operations. `player()` returns the hero handle,
 backed by the latest state Coderpack observed, and provides `teleport`, `gold`,
 `hp`, and `addExp`. The game interface also provides `uiString`, `typeName`,
-`typeId`, `types`, and `retype`. `retype` permanently changes an item’s type
-label and appearance, but keeps its original behavior and modifiers. Commands
-wait up to two seconds for an agent reply.
+`typeId`, `types`, `retype`, and `reshape`. `retype` permanently changes an
+item’s type label and appearance, but keeps its original behavior and
+modifiers. `reshape` makes an item a copy of another, modifiers included.
+Commands wait up to two seconds for an agent reply.
 
-Listener code for a veto runs while the game thread is stopped, so keep it
-short. After 250 ms, the host abandons an unanswered veto and lets the original
-value through.
+Listeners on a decidable event run while the game thread is stopped, so keep
+them short. The host’s deadline is 250 ms, checked every 125 ms. When it
+passes, the host lets the original value through.
 
 ### Logging
 
@@ -166,14 +174,15 @@ package com.example
 import dev.ancaria.coderpack.api.Context
 import dev.ancaria.coderpack.api.event.Gold
 import dev.ancaria.coderpack.ktx.SacredMod
-import dev.ancaria.coderpack.ktx.delta
+import dev.ancaria.coderpack.ktx.mutate
 import dev.ancaria.coderpack.ktx.on
 import dev.ancaria.coderpack.ktx.spending
+import dev.ancaria.coderpack.ktx.value
 
 class DoubleGold : SacredMod() {
 
     override fun Context.load() {
-        on<Gold> { if (!it.spending) it.delta *= 2 }
+        on<Gold> { if (!it.spending) mutate { Gold.Mutation.change(it.value * 2) } }
     }
 }
 ```
@@ -182,9 +191,9 @@ Three things are doing the work there. `SacredMod` is the abstract class from
 `…ktx`, which keeps the context and hands it to `load` as a receiver, so `on`
 and `log` read as bare calls. `on<Gold>` takes the event as a type argument
 instead of a class literal, and `events { }` groups several of those into one
-block. And a field the API lets a listener rewrite is a `var`, which is the
-whole of `it.delta *= 2`. Fields the API refuses to rewrite, `Gold.current`
-among them, stay read-only here too.
+block. And `mutate { }` is how a body decides. It exists only for an event that
+can be decided, so `on<Death> { mutate { ... } }` does not compile. Every
+property is a read-only `val`, `it.value` among them.
 
 `@Subscribe` works exactly as it does from Java, and so does implementing
 `dev.ancaria.coderpack.api.SacredMod` directly. None of this is required.
