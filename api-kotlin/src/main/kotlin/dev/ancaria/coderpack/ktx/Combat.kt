@@ -3,9 +3,11 @@ package dev.ancaria.coderpack.ktx
 import dev.ancaria.coderpack.api.event.Damage
 import dev.ancaria.coderpack.api.event.Death
 import dev.ancaria.coderpack.api.event.HealthChanged
+import dev.ancaria.coderpack.api.event.Kill
 import dev.ancaria.coderpack.api.event.MaxHealthChanged
 import dev.ancaria.coderpack.api.event.MobHit
 import dev.ancaria.coderpack.api.event.NearDeath
+import dev.ancaria.coderpack.api.event.Resurrection
 
 // Damage is the one decidable event here: its hook sits on the instruction that
 // commits HP, with the new value still in a register. Everything in this file
@@ -73,3 +75,15 @@ public inline val MobHit.next: Long get() = next()
 public inline val MobHit.maxHp: Long get() = maxHp()
 
 public inline val MobHit.damage: Long get() = damage()
+
+// The journal's side of a fight: what the Statistics page counts.
+
+/** Opponents defeated so far, this one included. */
+public inline val Kill.total: Long get() = total()
+
+public inline val Kill.typeId: Int get() = typeId()
+
+public inline val Kill.typeName: String? get() = typeName()
+
+/** Resurrections so far, this one included. */
+public inline val Resurrection.count: Long get() = count()

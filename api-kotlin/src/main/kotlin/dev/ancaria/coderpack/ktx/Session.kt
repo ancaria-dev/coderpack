@@ -3,6 +3,7 @@ package dev.ancaria.coderpack.ktx
 import dev.ancaria.coderpack.api.entity.Creature
 import dev.ancaria.coderpack.api.entity.HeroClass
 import dev.ancaria.coderpack.api.event.Despawn
+import dev.ancaria.coderpack.api.event.Discovery
 import dev.ancaria.coderpack.api.event.Hero
 import dev.ancaria.coderpack.api.event.LevelUp
 import dev.ancaria.coderpack.api.event.Position
@@ -65,6 +66,9 @@ public inline val Sector.y: Int get() = y()
 public inline val Spawn.creature: Creature get() = creature()
 
 public inline val Despawn.creature: Creature get() = creature()
+
+/** Areas discovered so far, this one included. */
+public inline val Discovery.areas: Long get() = areas()
 
 /** The wire name of an event no SDK type covers yet. */
 public inline val Unknown.name: String get() = name()
