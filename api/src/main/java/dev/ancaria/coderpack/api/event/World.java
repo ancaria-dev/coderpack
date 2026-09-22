@@ -5,15 +5,16 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 /**
- * Session lifecycle. {@link Phase#LOADED} is the first moment the world
- * exists. {@link Phase#HERO_TERMINATED} is when the hero pointer stops being
+ * Session lifecycle. {@link Phase#ATTACHED} is the agent announcing itself in
+ * a freshly hooked game, before any world may exist. {@link Phase#LOADED} is
+ * the first moment the world exists. {@link Phase#HERO_TERMINATED} is when the hero pointer stops being
  * valid, so anything holding player state should drop it there.
  */
 @Delivery.Unstable("Not every path into a phase is hooked, so a phase"
         + " can be missed entirely.")
 public final class World extends Event {
 
-    public enum Phase { LOADING, LOADED, HERO_LOADED, HERO_TERMINATED, DETACHED }
+    public enum Phase { ATTACHED, LOADING, LOADED, HERO_LOADED, HERO_TERMINATED, DETACHED }
 
     private final Phase phase;
 

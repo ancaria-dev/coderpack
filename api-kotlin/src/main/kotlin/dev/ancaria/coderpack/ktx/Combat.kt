@@ -2,6 +2,8 @@ package dev.ancaria.coderpack.ktx
 
 import dev.ancaria.coderpack.api.event.Damage
 import dev.ancaria.coderpack.api.event.Death
+import dev.ancaria.coderpack.api.event.HealthChanged
+import dev.ancaria.coderpack.api.event.MaxHealthChanged
 import dev.ancaria.coderpack.api.event.MobHit
 import dev.ancaria.coderpack.api.event.NearDeath
 
@@ -26,6 +28,23 @@ public inline val Damage.damage: Long get() = damage()
 public inline val Damage.hp: Long get() = hp()
 
 public inline val Damage.maxHp: Long get() = maxHp()
+
+/** "damage", "heal", "lethal", "survive" or "clamp". */
+public inline val HealthChanged.kind: String? get() = kind()
+
+/** HP before the write. */
+public inline val HealthChanged.previous: Long get() = previous()
+
+/** HP as stored, after every mod had its say. */
+public inline val HealthChanged.hp: Long get() = hp()
+
+public inline val HealthChanged.maxHp: Long get() = maxHp()
+
+public inline val HealthChanged.damage: Long get() = damage()
+
+public inline val MaxHealthChanged.previous: Long get() = previous()
+
+public inline val MaxHealthChanged.maxHp: Long get() = maxHp()
 
 public inline val Death.hpBefore: Long get() = hpBefore()
 
