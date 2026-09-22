@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 
 /**
  * What an event's arrival is like, for the part its Java type cannot say.
- * Whether a listener may change an event is decided by {@link Veto} and by the
+ * Whether a listener may change an event is decided by {@link Decides} and by the
  * compiler. These two marks describe the hook behind the event instead, how
  * completely it fires and how often, which is a fact about the agent and about
  * this loader version rather than about the contract.

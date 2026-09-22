@@ -1,8 +1,8 @@
 package dev.ancaria.coderpack.api;
 
 /**
- * The listener {@link Events#on} just registered, with a way to take it off
- * again.
+ * The listener {@link Events#on} or {@link Events#decide} just registered,
+ * with a way to take it off again.
  *
  * <p>A listener registered while the game runs usually has to come off again
  * while the game runs. A mod that only watches during a boss fight, say, or a

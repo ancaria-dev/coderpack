@@ -46,16 +46,19 @@ public interface Events {
      * what it subscribes to, so there is no event name to keep in sync.
      *
      * <p>The annotation carries the rest: {@link Subscribe#priority()} for when
-     * the method runs and {@link Subscribe#ignoreCancelled()} for whether an
-     * already cancelled event still reaches it.
+     * the method runs and {@link Subscribe#ignoreVetoed()} for whether an
+     * already vetoed event still reaches it. The method's return type says
+     * whether it only observes or also decides.
      */
     void register(Object listener);
 
     /**
-     * Registers one listener for one event type, at {@link Priority#NORMAL} and
-     * hearing about cancelled events, the defaults {@link Subscribe} has.
+     * Registers one observer for one event type, at {@link Priority#NORMAL} and
+     * hearing about vetoed events, the defaults {@link Subscribe} has. An
+     * observer returns nothing, so it cannot change the event. Use
+     * {@link #decide} for that.
      *
-     * <pre>{@code events.on(Damage.class, e -> e.next(e.maxHp()));}</pre>
+     * <pre>{@code events.on(Death.class, e -> context.log("blow " + e.blow()));}</pre>
      *
      * <p>The type is the same thing the annotation's parameter type is, so a
      * listener on {@link Event} still sees every event and one on
@@ -76,7 +79,7 @@ public interface Events {
 
     /**
      * As {@link #on(Class, Consumer)}, choosing when it runs and whether an
-     * already cancelled event still reaches it.
+     * already vetoed event still reaches it.
      */
     @Nonnull
     <E extends Event> Handle on(Class<E> type, Priority priority,
