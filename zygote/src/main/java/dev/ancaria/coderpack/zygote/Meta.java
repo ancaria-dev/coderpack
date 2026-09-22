@@ -14,7 +14,7 @@ import java.util.Map;
  * version = "0.1.0"
  * description = "What a player sees in the launcher's mod list."
  * entrypoint = "com.example.ExampleMod"
- * api = "[1,2)"
+ * api = "[2,3)"
  * loader = "[0.1.20,)"
  * authors = ["Somebody", "Somebody Else"]
  * website = "https://ancaria.dev"
