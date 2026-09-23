@@ -62,7 +62,7 @@ python tests/replay.py
 The commands have distinct jobs:
 
 - `python tools/addr.py` writes `agent/src/gen/addr.js`. The current registry
-  produces 52 RVAs, 4 globals, and 38 site signatures. The generated RVA and
+  produces 56 RVAs, 4 globals, and 38 site signatures. The generated RVA and
   global tables preserve their order from `mappings.json`.
 - `gradlew build` writes artifacts under `api/build/libs`,
   `zygote/build/libs`, and `api-kotlin/build/libs`. It also runs the zygote
