@@ -13,7 +13,7 @@ import java.util.Map;
  * taste: it works only where the hook sits before the write and Coderpack owns
  * the register, or can rewrite the field before anything else observes it.
  */
-public abstract sealed class Decision extends Event permits Amount, Pickup {
+public abstract sealed class Decision extends Event permits Amount, Console, Pickup {
 
     // Written by the fold, through Fold, and by nothing else.
     private boolean vetoed;

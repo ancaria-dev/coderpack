@@ -46,7 +46,11 @@ class RegistryTest {
                 "journal.resurrection",
                 "journal.discovery",
                 "art.raise",
-                "art.changed");
+                "art.changed",
+                "session.saved",
+                "session.load_start",
+                "session.load_done",
+                "console.line");
         for (String name : sent) {
             assertFalse(build(name, Map.of()) instanceof Unknown, name);
         }

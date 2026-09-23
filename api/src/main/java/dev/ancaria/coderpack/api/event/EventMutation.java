@@ -25,7 +25,8 @@ import javax.annotation.Nonnull;
  * priority decides and then mod load order does, so reach for
  * {@link dev.ancaria.coderpack.api.Priority} first.
  */
-public abstract sealed class EventMutation permits Amount.Change, Pickup.Mutation {
+public abstract sealed class EventMutation
+        permits Amount.Change, Console.Mutation, Pickup.Mutation {
 
     /** Which of the four a mutation is. The loader folds on this. */
     public enum Kind {

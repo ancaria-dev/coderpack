@@ -2,12 +2,15 @@ package dev.ancaria.coderpack.ktx
 
 import dev.ancaria.coderpack.api.entity.Creature
 import dev.ancaria.coderpack.api.entity.HeroClass
+import dev.ancaria.coderpack.api.event.Console
 import dev.ancaria.coderpack.api.event.Despawn
 import dev.ancaria.coderpack.api.event.Discovery
 import dev.ancaria.coderpack.api.event.Hero
 import dev.ancaria.coderpack.api.event.LevelUp
+import dev.ancaria.coderpack.api.event.Load
 import dev.ancaria.coderpack.api.event.Position
 import dev.ancaria.coderpack.api.event.Region
+import dev.ancaria.coderpack.api.event.Save
 import dev.ancaria.coderpack.api.event.Sector
 import dev.ancaria.coderpack.api.event.Spawn
 import dev.ancaria.coderpack.api.event.Unknown
@@ -69,6 +72,29 @@ public inline val Despawn.creature: Creature get() = creature()
 
 /** Areas discovered so far, this one included. */
 public inline val Discovery.areas: Long get() = areas()
+
+/** The save slot. 0 is the quicksave. */
+public inline val Save.slot: Int get() = slot()
+
+public inline val Save.name: String? get() = name()
+
+public inline val Save.path: String? get() = path()
+
+public inline val Save.ok: Boolean get() = ok()
+
+/** False as the load starts, true once it has returned. */
+public inline val Load.done: Boolean get() = done()
+
+/** The save slot, or -1 when the file is not a slot. */
+public inline val Load.slot: Int get() = slot()
+
+/** A new game rather than a saved one. */
+public inline val Load.fresh: Boolean get() = fresh()
+
+public inline val Load.path: String? get() = path()
+
+/** The whole console line, as typed. Veto it to take it as a mod command. */
+public inline val Console.text: String get() = text()
 
 /** The wire name of an event no SDK type covers yet. */
 public inline val Unknown.name: String get() = name()

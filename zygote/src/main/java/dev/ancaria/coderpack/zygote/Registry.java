@@ -5,6 +5,7 @@ import dev.ancaria.coderpack.api.event.AttributeChanged;
 import dev.ancaria.coderpack.api.event.AttributePointsChanged;
 import dev.ancaria.coderpack.api.event.CombatArt;
 import dev.ancaria.coderpack.api.event.CombatArtChanged;
+import dev.ancaria.coderpack.api.event.Console;
 import dev.ancaria.coderpack.api.event.Damage;
 import dev.ancaria.coderpack.api.event.Death;
 import dev.ancaria.coderpack.api.event.Despawn;
@@ -19,6 +20,7 @@ import dev.ancaria.coderpack.api.event.HealthChanged;
 import dev.ancaria.coderpack.api.event.Hero;
 import dev.ancaria.coderpack.api.event.Kill;
 import dev.ancaria.coderpack.api.event.LevelUp;
+import dev.ancaria.coderpack.api.event.Load;
 import dev.ancaria.coderpack.api.event.MaxHealthChanged;
 import dev.ancaria.coderpack.api.event.MobDeath;
 import dev.ancaria.coderpack.api.event.MobHit;
@@ -28,6 +30,7 @@ import dev.ancaria.coderpack.api.event.Pickup;
 import dev.ancaria.coderpack.api.event.Position;
 import dev.ancaria.coderpack.api.event.Region;
 import dev.ancaria.coderpack.api.event.Resurrection;
+import dev.ancaria.coderpack.api.event.Save;
 import dev.ancaria.coderpack.api.event.Sector;
 import dev.ancaria.coderpack.api.event.Skill;
 import dev.ancaria.coderpack.api.event.SkillChanged;
@@ -87,6 +90,10 @@ final class Registry {
             Map.entry("journal.discovery", Discovery::new),
             Map.entry("art.raise", CombatArt::new),
             Map.entry("art.changed", CombatArtChanged::new),
+            Map.entry("session.saved", Save::new),
+            Map.entry("session.load_start", f -> new Load(false, f)),
+            Map.entry("session.load_done", f -> new Load(true, f)),
+            Map.entry("console.line", Console::new),
             Map.entry("session.detached", f -> new World(World.Phase.DETACHED, f)));
 
     private Registry() {

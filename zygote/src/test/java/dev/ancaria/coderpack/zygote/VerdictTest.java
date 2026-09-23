@@ -1,6 +1,7 @@
 package dev.ancaria.coderpack.zygote;
 
 import dev.ancaria.coderpack.api.event.CombatArt;
+import dev.ancaria.coderpack.api.event.Console;
 import dev.ancaria.coderpack.api.event.Fold;
 import dev.ancaria.coderpack.api.event.Gold;
 import org.junit.jupiter.api.Test;
@@ -64,5 +65,13 @@ class VerdictTest {
                 "prev", "13", "next", "14", "step", "1"));
         Fold.apply(art, CombatArt.Mutation.change(art.value() + 1));
         assertEquals("END 9 set.next=15", Verdict.of(9, art).encode());
+    }
+
+    @Test
+    void aClaimedConsoleLineIsACancel() {
+        Console line = new Console(Map.of("text", "/heal"));
+        assertEquals("END 4 ok=1", Verdict.of(4, line).encode());
+        Fold.apply(line, Console.Mutation.veto());
+        assertEquals("END 4 cancel=1", Verdict.of(4, line).encode());
     }
 }
