@@ -304,8 +304,9 @@ adding JSR 305.
 
 `api-kotlin` is `dev.ancaria.coderpack:api-kotlin`, published from this
 repository at the same version as `api`. It adds no capability. Every
-declaration in it forwards to a method on `api`, and the registration helpers are `inline`, so what
-a mod ends up with in bytecode is the call it would have written by hand.
+declaration in it forwards to a method on `api`, and the registration helpers
+are `inline`, so what a mod ends up with in bytecode is the call it would have
+written by hand.
 
 Three constraints decide its shape, and each one is load-bearing:
 
