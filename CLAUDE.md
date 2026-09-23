@@ -38,7 +38,7 @@ responsibilities into the agent, API, or zygote.
 | `agent/src/gen/addr.js` | Gitignored output from `tools/addr.py`. It contains addresses and the build fingerprint. |
 | `agent/signatures.json` | The bytes found at each hook site in a real `pureHD.exe`. |
 | `api/` | Events, entities, registries, and the `SacredMod` base class exposed to mods. `api/internal` is the loader's side and not for mods. |
-| `api-kotlin/` | Kotlin extensions over `api`, in package `dev.ancaria.coderpack.ktx`. One file per group of events. |
+| `api-kotlin/` | Kotlin extensions over `api`, in package `dev.ancaria.coderpack.ktx`: registration helpers and the few things a getter cannot say. |
 | `zygote/` | Mod loading and JVM-side protocol handling. `Ranges` defines version syntax and `Compat` applies its two compatibility checks. |
 | `tools/` | `addr.py` generates addresses, `hooksafe.py` checks hook sites and writes signatures, and `paths.py` locates mappings. |
 | `tests/` | `replay.py` and `buildcheck.js` run without the game. `inject_python.py` runs the agent through frida-python. |
@@ -304,7 +304,7 @@ adding JSR 305.
 
 `api-kotlin` is `dev.ancaria.coderpack:api-kotlin`, published from this
 repository at the same version as `api`. It adds no capability. Every
-declaration in it forwards to a method on `api`, and most are `inline`, so what
+declaration in it forwards to a method on `api`, and the registration helpers are `inline`, so what
 a mod ends up with in bytecode is the call it would have written by hand.
 
 Three constraints decide its shape, and each one is load-bearing:
@@ -324,22 +324,31 @@ Three constraints decide its shape, and each one is load-bearing:
   it as `implementation` and it is packed, next to the Kotlin standard library
   that mod already carries.
 
-The contents, one file per group:
+There is no Kotlin `SacredMod`. The Java class already keeps the context and
+hands it out as `getContext()`, which Kotlin reads as `context`, so a Kotlin mod
+extends `dev.ancaria.coderpack.api.SacredMod` directly and overrides the
+parameterless `onLoad()`. A second base class of the same name would only be an
+import to get wrong.
+
+Nor are there properties that rename API readers. Every accessor in `api` is a
+getter now, so Kotlin sees `it.value`, `it.isVetoed`, `player.hp` (a `var`,
+because `setHp` exists) and `game.world.entityRegistry.player` without help.
+An extension property with a member's name is shadowed by the member and only
+misleads. Do not add one back; add a getter to the Java class instead.
+
+The contents:
 
 | File | What it adds |
 |---|---|
-| `Mod.kt` | `SacredMod`, an abstract class that stores the context and hands it to `Context.load()` as a receiver. Deliberately the same simple name as the interface. |
-| `Events.kt` | The `events { }` registration block, `once<E> { }`, and `Handle` combinators. |
-| `Scope.kt` | `on<E> { }` and the `On<E>` scope it runs in, with `mutate { }`. |
-| `Context.kt` | `id`, `game`, and `gameDir` as properties. Deliberately no `events` property; the block of that name would make `context.events { }` an overload question. |
-| `Event.kt` | `event["key"]`, `long`, `int`, `fields`, `Decision.vetoed`, and `Amount.value` / `Amount.initial`. |
-| `Session.kt`, `Progress.kt`, `Combat.kt`, `Items.kt`, `Game.kt` | Properties for the events and entities in each group. |
+| `Events.kt` | `Context.events { }`, the block with `EventRegistry` as its receiver; `once<E> { }`; `Handle + Handle` as a list and `Iterable<Handle>.unregister()`. |
+| `Scope.kt` | `on<E> { }` on `EventRegistry` and on `Context`, and the `On<E>` scope it runs in, with `mutate { }`. |
+| `Event.kt` | `event["key"]`, `long(key)` and `int(key)` over the raw fields. |
+| `Items.kt` | `item[modifierId]`, null when the item does not carry it. |
+| `Game.kt` | `Pos`, `position` on `Player` and `Creature`, `teleport(Pos)`, `EntityRegistry.creaturesNear(Pos, r)`, `Realm.sector` and `TypeRegistry.typeIdOrNull`. |
 
-Every property here is a `val`. There used to be `var`s for the fields a
-listener could rewrite, and they did not round-trip: assigning one added a
-rewrite while a read still gave the game's own number. That whole asymmetry is
-gone with the mutable event. Do not add a setter here; the API has none to
-forward to.
+`Handle + Handle` gives a `List<Handle>` rather than a merged handle, because a
+handle now names its mod, event type and priority, and two handles have two
+answers to each.
 
 Kotlin gets one `on` where Java needs `on` and `decide`, because the body is
 `Unit` on both paths and says what it decided by calling `mutate`. Two overloads
@@ -352,16 +361,14 @@ one internal function in `Scope.kt` and needs one cast through `Nothing`, which
 its comment explains; nothing unsound reaches a mod through it.
 
 `api-kotlin/src/test` covers the parts a signature cannot: that `value` reports
-the fold while `initial` keeps the arrived number, and that `once` unregisters
-on both sides of its race, including the case where the event arrives before
-`on` has returned the handle. `Fakes.kt` holds the stand-in bus, context and
-game, and its bus keeps observing and deciding registrations in one list
+the fold while `initial` keeps the arrived number, that `once` unregisters on
+both sides of its race, including the case where the event arrives before `on`
+has returned the handle, and that a Kotlin subclass of the Java `SacredMod`
+created through `ModBinding.create` has its context in a field initialiser and
+registers from `onLoad()`. `Fakes.kt` holds the stand-in bus, context, game and
+type table, and its bus keeps observing and deciding registrations in one list
 because "still on the bus" is one idea. No test here reaches the loader or the
 game.
-
-`SacredMod.load()` is named `load` rather than `onLoad` because it cannot be
-called that. An extension receiver becomes the first JVM parameter, so
-`Context.onLoad()` and the interface's `onLoad(Context)` are one signature.
 
 Raising `Api.VERSION` does not require a change here. This module compiles
 against the API and breaks with it, so it moves when the API's own artifact
