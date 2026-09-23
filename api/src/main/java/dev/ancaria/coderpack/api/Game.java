@@ -20,6 +20,10 @@ public interface Game {
     @Nullable
     Player player();
 
+    /** The creatures around the hero and where the hero is. Never null. */
+    @Nonnull
+    Realm world();
+
     /** Localized UI text for a dictionary key, or null if the key is unknown. */
     @Nullable
     String uiString(String key);

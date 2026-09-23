@@ -147,6 +147,8 @@ class FakeGame(private val known: Map<String, Int> = mapOf("TYPE_OBJECT_RING" to
 
     override fun player(): Player? = null
 
+    override fun world(): dev.ancaria.coderpack.api.Realm = throw UnsupportedOperationException("no world in a test")
+
     override fun uiString(key: String): String? = null
 
     override fun typeName(typeId: Int): String? = null

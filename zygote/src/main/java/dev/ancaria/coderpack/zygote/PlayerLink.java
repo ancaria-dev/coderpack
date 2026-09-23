@@ -1,10 +1,18 @@
 package dev.ancaria.coderpack.zygote;
 
+import dev.ancaria.coderpack.api.entity.Attributes;
+import dev.ancaria.coderpack.api.entity.CombatArts;
 import dev.ancaria.coderpack.api.entity.HeroClass;
 import dev.ancaria.coderpack.api.entity.Player;
+import dev.ancaria.coderpack.api.entity.Sheet;
+import dev.ancaria.coderpack.api.entity.Skills;
+import dev.ancaria.coderpack.api.entity.Stats;
 import dev.ancaria.coderpack.api.event.Event;
 import dev.ancaria.coderpack.api.event.Hero;
 import dev.ancaria.coderpack.api.event.Position;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Player state, kept current from the events that already carry it. Reads are
@@ -141,5 +149,63 @@ final class PlayerLink implements Player {
     @Override
     public void addExp(long amount) {
         exp = number(game.call("player.exp", "amount", amount).get("exp"), exp);
+    }
+
+    // Not cached: no event covers these completely, so a cached copy would be
+    // wrong in ways a mod could not see. Each answer is a fresh snapshot, and a
+    // failed call is an empty one rather than an exception.
+
+    @Override
+    public Attributes attributes() {
+        return new Attributes(game.call("player.attributes", Map.of()));
+    }
+
+    @Override
+    public void attribute(Attributes.Kind kind, int value) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("index", Integer.toString(kind.index()));
+        fields.put("value", Integer.toString(value));
+        game.call("player.attribute", fields);
+    }
+
+    @Override
+    public Skills skills() {
+        return new Skills(game.call("player.skills", Map.of()));
+    }
+
+    @Override
+    public void skill(int slot, int level) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("slot", Integer.toString(slot));
+        fields.put("value", Integer.toString(level));
+        game.call("player.skill", fields);
+    }
+
+    @Override
+    public CombatArts combatArts() {
+        return new CombatArts(game.call("player.arts", Map.of()));
+    }
+
+    @Override
+    public void combatArt(int index, int level) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("index", Integer.toString(index));
+        fields.put("level", Integer.toString(level));
+        game.call("player.art", fields);
+    }
+
+    @Override
+    public Stats stats() {
+        return new Stats(game.call("player.stats", Map.of()));
+    }
+
+    @Override
+    public Sheet sheet() {
+        return new Sheet(game.call("player.sheet", Map.of()));
+    }
+
+    @Override
+    public void kill() {
+        hp = number(game.call("player.kill", Map.of()).get("hp"), hp);
     }
 }

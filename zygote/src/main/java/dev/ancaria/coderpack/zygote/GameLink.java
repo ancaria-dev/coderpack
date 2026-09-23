@@ -1,6 +1,7 @@
 package dev.ancaria.coderpack.zygote;
 
 import dev.ancaria.coderpack.api.Game;
+import dev.ancaria.coderpack.api.Realm;
 import dev.ancaria.coderpack.api.entity.Item;
 import dev.ancaria.coderpack.api.entity.Player;
 
@@ -28,6 +29,7 @@ final class GameLink implements Game {
     private final Map<Long, CompletableFuture<Map<String, String>>> pending =
             new ConcurrentHashMap<>();
     private final PlayerLink player = new PlayerLink(this);
+    private final RealmLink world = new RealmLink(this);
 
     GameLink(Pipe pipe) {
         this.pipe = pipe;
@@ -68,6 +70,11 @@ final class GameLink implements Game {
     @Override
     public Player player() {
         return player.present() ? player : null;
+    }
+
+    @Override
+    public Realm world() {
+        return world;
     }
 
     @Override
