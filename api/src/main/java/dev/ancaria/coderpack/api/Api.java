@@ -2,7 +2,7 @@ package dev.ancaria.coderpack.api;
 
 /**
  * The version of this API contract, written into every mod's descriptor as
- * {@code api = "2"} and checked by the loader before a mod is started.
+ * {@code api = "3"} and checked by the loader before a mod is started.
  *
  * <p>This is not the artifact version. {@code dev.ancaria.coderpack:api} is at
  * 0.102.0 and that number moves with every release. This one moves only when a
@@ -19,7 +19,7 @@ package dev.ancaria.coderpack.api;
 public final class Api {
 
     /** The major this loader implements. */
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
 
     private Api() {
     }
