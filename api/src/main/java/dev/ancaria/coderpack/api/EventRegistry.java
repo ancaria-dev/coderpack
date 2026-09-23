@@ -4,6 +4,7 @@ import dev.ancaria.coderpack.api.event.Decides;
 import dev.ancaria.coderpack.api.event.Event;
 import dev.ancaria.coderpack.api.event.EventMutation;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -16,8 +17,11 @@ import javax.annotation.Nonnull;
  *
  * <p>{@link #register(Object)} is for a mod's own handlers, a class of
  * methods each named after what it does. {@link #on} is for a one-liner and
- * for anything registered after load, since it hands back a {@link Handle} that
- * takes the listener off again.
+ * for anything registered after load. Both hand back {@link Handle}s that
+ * say what was registered and take it off again.
+ *
+ * <p>Whatever a mod registers belongs to that mod. When the mod is
+ * unregistered, every one of its listeners comes off with it.
  *
  * <h2>Threads</h2>
  *
@@ -38,7 +42,7 @@ import javax.annotation.Nonnull;
  * takes effect from the next event at the latest, since a dispatch that has
  * already passed the listener cannot un-call it.
  */
-public interface Events {
+public interface EventRegistry {
 
     /**
      * Registers every {@link Subscribe} method on {@code listener}. Each such
@@ -49,8 +53,12 @@ public interface Events {
      * the method runs and {@link Subscribe#ignoreVetoed()} for whether an
      * already vetoed event still reaches it. The method's return type says
      * whether it only observes or also decides.
+     *
+     * @return one handle per method that was registered, unmodifiable. A
+     *         method the loader refused, with a warning, has none.
      */
-    void register(Object listener);
+    @Nonnull
+    List<Handle> register(Object listener);
 
     /**
      * Registers one observer for one event type, at {@link Priority#NORMAL} and
@@ -58,7 +66,7 @@ public interface Events {
      * observer returns nothing, so it cannot change the event. Use
      * {@link #decide} for that.
      *
-     * <pre>{@code events.on(Death.class, e -> context.log("blow " + e.getBlow()));}</pre>
+     * <pre>{@code events.on(Death.class, e -> getContext().log("blow " + e.getBlow()));}</pre>
      *
      * <p>The type is the same thing the annotation's parameter type is, so a
      * listener on {@link Event} still sees every event and one on
@@ -120,4 +128,36 @@ public interface Events {
     <M extends EventMutation, E extends Event & Decides<M>> Handle decide(
             Class<E> type, Priority priority, boolean ignoreVetoed,
             Function<E, M> listener);
+
+    /**
+     * Every listener on the bus, of every mod, in registration order. An
+     * unmodifiable snapshot: it does not follow later registrations, and a
+     * handle in it may have been unregistered since, which
+     * {@link Handle#isRegistered()} says.
+     */
+    @Nonnull
+    List<Handle> getEvents();
+
+    /**
+     * Takes one listener off, the same as {@link Handle#unregister()}.
+     *
+     * @return false when it was not on the bus any more
+     */
+    boolean unregister(Handle handle);
+
+    /**
+     * Takes off every {@link Subscribe} method {@link #register(Object)} put on
+     * the bus for this object.
+     *
+     * @return how many listeners came off
+     */
+    int unregister(Object listener);
+
+    /**
+     * Takes off the {@link Subscribe} methods of this object whose parameter
+     * is exactly {@code type}. A method on a supertype of {@code type} stays.
+     *
+     * @return how many listeners came off
+     */
+    int unregister(Object listener, Class<? extends Event> type);
 }

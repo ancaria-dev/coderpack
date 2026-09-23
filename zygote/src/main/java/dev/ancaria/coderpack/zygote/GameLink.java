@@ -1,10 +1,11 @@
 package dev.ancaria.coderpack.zygote;
 
 import dev.ancaria.coderpack.api.Game;
+import dev.ancaria.coderpack.api.GameConsole;
 import dev.ancaria.coderpack.api.Realm;
-import dev.ancaria.coderpack.api.entity.Item;
-import dev.ancaria.coderpack.api.entity.Player;
+import dev.ancaria.coderpack.api.TypeRegistry;
 
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -25,14 +26,19 @@ final class GameLink implements Game {
     private static final long TIMEOUT_SECONDS = 2;
 
     private final Pipe pipe;
+    private final Path directory;
     private final AtomicLong sequence = new AtomicLong(1);
     private final Map<Long, CompletableFuture<Map<String, String>>> pending =
             new ConcurrentHashMap<>();
     private final PlayerLink player = new PlayerLink(this);
     private final RealmLink world = new RealmLink(this);
+    private final TypeLink types = new TypeLink(this);
+    // One line out through the game's own console. See 95-console.js.
+    private final GameConsole console = text -> call("console.print", "text", text);
 
-    GameLink(Pipe pipe) {
+    GameLink(Pipe pipe, Path directory) {
         this.pipe = pipe;
+        this.directory = directory;
     }
 
     Map<String, String> call(String name, Map<String, String> fields) {
@@ -68,76 +74,27 @@ final class GameLink implements Game {
     }
 
     @Override
-    public Player player() {
-        return player.present() ? player : null;
+    public Path getDirectory() {
+        return directory;
     }
 
     @Override
-    public Realm world() {
-        return world;
-    }
-
-    @Override
-    public String uiString(String key) {
+    public String getUiString(String key) {
         return call("ui.string", "key", key).get("text");
     }
 
     @Override
-    public String typeName(int typeId) {
-        return call("type.name", "id", typeId).get("name");
+    public Realm getWorld() {
+        return world;
     }
 
     @Override
-    public int typeId(String name) {
-        String id = call("type.find", "name", name).get("id");
-        return id == null ? 0 : Integer.parseInt(id);
+    public TypeRegistry getTypeRegistry() {
+        return types;
     }
 
     @Override
-    public Map<String, Integer> types(String prefix) {
-        // "NAME:id,NAME:id" in one field: the caller is building a table at
-        // startup and a round-trip per name would be a hundred of them.
-        String packed = call("type.list", "prefix", prefix).get("types");
-        if (packed == null || packed.isEmpty()) {
-            return Map.of();
-        }
-        Map<String, Integer> out = new LinkedHashMap<>();
-        for (String pair : packed.split(",")) {
-            int split = pair.lastIndexOf(':');
-            if (split <= 0) {
-                continue;
-            }
-            try {
-                out.put(pair.substring(0, split),
-                        Integer.parseInt(pair.substring(split + 1)));
-            } catch (NumberFormatException skip) {
-                Log.warn("type.list sent something unparseable: " + pair);
-            }
-        }
-        return out;
-    }
-
-    @Override
-    public boolean retype(int ref, int typeId) {
-        Map<String, String> fields = new LinkedHashMap<>();
-        fields.put("ref", Integer.toString(ref));
-        fields.put("type", Integer.toString(typeId));
-        // A positive signal, not the absence of "err": a command that timed
-        // out comes back as an empty map and would otherwise read as success.
-        return call("item.reshape", fields).get("ok") != null;
-    }
-
-    @Override
-    public boolean reshape(int ref, Item template) {
-        // The agent names these fields exactly as they arrive on an item event,
-        // so what was read off a Pickup is what is written back here.
-        Map<String, String> fields = new LinkedHashMap<>();
-        fields.put("ref", Integer.toString(ref));
-        fields.put("type", Integer.toString(template.getTypeId()));
-        fields.put("price", Integer.toString(template.getPrice()));
-        fields.put("level", Integer.toString(template.getLevel()));
-        fields.put("min", Integer.toString(template.getMinLevel()));
-        fields.put("mods", template.getPackedModifiers());
-        return call("item.reshape", fields).get("ok") != null;
+    public GameConsole getConsole() {
+        return console;
     }
 }

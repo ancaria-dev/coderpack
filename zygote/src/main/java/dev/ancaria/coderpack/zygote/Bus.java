@@ -2,6 +2,7 @@ package dev.ancaria.coderpack.zygote;
 
 import dev.ancaria.coderpack.api.Handle;
 import dev.ancaria.coderpack.api.Priority;
+import dev.ancaria.coderpack.api.SacredMod;
 import dev.ancaria.coderpack.api.Subscribe;
 import dev.ancaria.coderpack.api.event.Event;
 import dev.ancaria.coderpack.api.event.Decides;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Listener registry and dispatch.
@@ -107,14 +109,23 @@ final class Bus {
         }
     }
 
-    private static final class Listener {
+    /**
+     * One registration, and the {@link Handle} a mod is given for it. The
+     * same object on both sides, so a handle from {@code getEvents()} and the
+     * one {@code on(...)} returned are one listener, not two views of it.
+     */
+    private final class Listener implements Handle {
 
+        final LoadedMod owner;
         final MethodHandle call;
-        final Class<?> type;
+        final Class<? extends Event> type;
         final Priority priority;
         final boolean ignoreVetoed;
         final String name;
         final int seq;
+        // The @Subscribe object and method; null for a lambda.
+        final Object target;
+        final String method;
 
         // Written and read only inside dispatch(), which is one thread. Plain
         // fields on purpose: volatile here would put a barrier on the per-frame
@@ -127,14 +138,67 @@ final class Bus {
         // before every call.
         volatile boolean dead;
 
-        Listener(MethodHandle call, Class<?> type, Priority priority,
-                 boolean ignoreVetoed, String name, int seq) {
+        Listener(LoadedMod owner, MethodHandle call, Class<? extends Event> type,
+                 Priority priority, boolean ignoreVetoed, String name,
+                 Object target, String method) {
+            this.owner = owner;
             this.call = call;
             this.type = type;
             this.priority = priority;
             this.ignoreVetoed = ignoreVetoed;
             this.name = name;
-            this.seq = seq;
+            this.seq = registrations.getAndIncrement();
+            this.target = target;
+            this.method = method;
+        }
+
+        @Override
+        public void unregister() {
+            drop(this);
+        }
+
+        @Override
+        public boolean isRegistered() {
+            return !dead;
+        }
+
+        @Override
+        public SacredMod getMod() {
+            return owner.instance();
+        }
+
+        @Override
+        public Class<? extends Event> getEventType() {
+            return type;
+        }
+
+        @Override
+        public Priority getPriority() {
+            return priority;
+        }
+
+        @Override
+        public boolean isIgnoreVetoed() {
+            return ignoreVetoed;
+        }
+
+        @Override
+        public Class<?> getListenerClass() {
+            return target == null ? null : target.getClass();
+        }
+
+        @Override
+        public String getMethodName() {
+            return method;
+        }
+
+        Bus bus() {
+            return Bus.this;
+        }
+
+        @Override
+        public String toString() {
+            return name + (dead ? " (unregistered)" : "");
         }
     }
 
@@ -159,8 +223,10 @@ final class Bus {
     /** Registration order, and registration can come from more than one thread. */
     private final AtomicInteger registrations = new AtomicInteger();
 
-    void register(String mod, Object target) {
-        int found = 0;
+    /** Every {@link Subscribe} method on {@code target}, one handle each. */
+    List<Handle> register(LoadedMod owner, Object target) {
+        String mod = owner.id();
+        List<Handle> added = new ArrayList<>();
         for (Method method : target.getClass().getMethods()) {
             Subscribe annotation = method.getAnnotation(Subscribe.class);
             if (annotation == null) {
@@ -202,13 +268,18 @@ final class Bus {
                          + ". Make the class public (" + denied + ").");
                 continue;
             }
-            add(new Listener(call, method.getParameterTypes()[0], annotation.priority(),
-                             annotation.ignoreVetoed(),
-                             mod + "." + method.getName(),
-                             registrations.getAndIncrement()));
-            found++;
+            @SuppressWarnings("unchecked")
+            Class<? extends Event> type = (Class<? extends Event>) method.getParameterTypes()[0];
+            Listener listener = new Listener(owner, call, type, annotation.priority(),
+                                             annotation.ignoreVetoed(),
+                                             mod + "." + method.getName(),
+                                             target, method.getName());
+            add(listener);
+            added.add(listener);
         }
+        int found = added.size();
         Log.info(mod + ": " + found + (found == 1 ? " listener." : " listeners."));
+        return List.copyOf(added);
     }
 
     /**
@@ -218,25 +289,25 @@ final class Bus {
      * two kinds of listener.
      */
     <M extends EventMutation, E extends Event & Decides<M>> Handle decide(
-            String mod, Class<E> type, Priority priority, boolean ignoreVetoed,
+            LoadedMod owner, Class<E> type, Priority priority, boolean ignoreVetoed,
             Function<E, M> listener) {
-        Listener added = new Listener(APPLY.bindTo(listener).asType(CALL), type,
+        Listener added = new Listener(owner, APPLY.bindTo(listener).asType(CALL), type,
                                       priority, ignoreVetoed,
-                                      mod + ".decide(" + type.getSimpleName() + ")",
-                                      registrations.getAndIncrement());
+                                      owner.id() + ".decide(" + type.getSimpleName() + ")",
+                                      null, null);
         add(added);
-        return () -> drop(added);
+        return added;
     }
 
     /** The observing lambda path. */
-    <E extends Event> Handle on(String mod, Class<E> type, Priority priority,
+    <E extends Event> Handle on(LoadedMod owner, Class<E> type, Priority priority,
                                 boolean ignoreVetoed, Consumer<E> listener) {
-        Listener added = new Listener(ACCEPT.bindTo(listener).asType(CALL), type,
+        Listener added = new Listener(owner, ACCEPT.bindTo(listener).asType(CALL), type,
                                       priority, ignoreVetoed,
-                                      mod + ".on(" + type.getSimpleName() + ")",
-                                      registrations.getAndIncrement());
+                                      owner.id() + ".on(" + type.getSimpleName() + ")",
+                                      null, null);
         add(added);
-        return () -> drop(added);
+        return added;
     }
 
     private void add(Listener listener) {
@@ -374,14 +445,75 @@ final class Bus {
      * Takes a listener off. Idempotent, safe from any thread, and safe from
      * inside a dispatch. The loop reads {@code dead} again before each call,
      * so a listener it has not reached yet is not reached.
+     *
+     * @return false when it was already off
      */
-    private void drop(Listener listener) {
+    private boolean drop(Listener listener) {
         synchronized (lock) {
             if (listener.dead) {
-                return;
+                return false;
             }
             listener.dead = true;
             sweep();
+            return true;
+        }
+    }
+
+    /** {@link Handle#unregister()} with an answer, for a handle of this bus. */
+    boolean drop(Handle handle) {
+        if (handle instanceof Listener listener && listener.bus() == this) {
+            return drop(listener);
+        }
+        boolean was = handle.isRegistered();
+        handle.unregister();
+        return was;
+    }
+
+    /**
+     * Takes off every listener {@link #register(LoadedMod, Object)} made for
+     * {@code target}, or only those declared for exactly {@code type} when it
+     * is not null.
+     */
+    int dropTarget(Object target, Class<?> type) {
+        return dropWhere(l -> l.target == target && (type == null || l.type == type));
+    }
+
+    /** Takes off everything a mod registered, annotation and lambda alike. */
+    int dropMod(LoadedMod owner) {
+        return dropWhere(l -> l.owner == owner);
+    }
+
+    private int dropWhere(Predicate<Listener> which) {
+        synchronized (lock) {
+            int dropped = 0;
+            for (List<Listener> bucket : declared.values()) {
+                for (Listener listener : bucket) {
+                    if (!listener.dead && which.test(listener)) {
+                        listener.dead = true;
+                        dropped++;
+                    }
+                }
+            }
+            if (dropped > 0) {
+                sweep();
+            }
+            return dropped;
+        }
+    }
+
+    /** Every live listener of every mod, in registration order. */
+    List<Handle> handles() {
+        synchronized (lock) {
+            List<Listener> all = new ArrayList<>();
+            for (List<Listener> bucket : declared.values()) {
+                for (Listener listener : bucket) {
+                    if (!listener.dead) {
+                        all.add(listener);
+                    }
+                }
+            }
+            all.sort(Comparator.comparingInt(l -> l.seq));
+            return List.copyOf(all);
         }
     }
 

@@ -1,8 +1,9 @@
 package dev.ancaria.coderpack.zygote;
 
-import dev.ancaria.coderpack.api.Events;
+import dev.ancaria.coderpack.api.EventRegistry;
 import dev.ancaria.coderpack.api.Handle;
 import dev.ancaria.coderpack.api.Priority;
+import dev.ancaria.coderpack.api.SacredMod;
 import dev.ancaria.coderpack.api.Subscribe;
 import dev.ancaria.coderpack.api.event.Decision;
 import dev.ancaria.coderpack.api.event.Event;
@@ -22,6 +23,9 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The dispatch rules (order, the fold, ignoreVetoed and MONITOR) through both
@@ -37,8 +41,16 @@ class BusTest {
         return new Gold(Map.of("delta", Long.toString(id), "current", "50", "dir", "gain"));
     }
 
-    private static Events events(Bus bus, String mod) {
-        return new ModEvents(mod, bus);
+    private static EventRegistry events(Bus bus, String mod) {
+        return new ModEvents(mod(mod), bus);
+    }
+
+    /** A mod with an instance and nothing else: no jar, no loader, no context. */
+    static LoadedMod mod(String id) {
+        LoadedMod mod = new LoadedMod(id, null, null);
+        mod.claim(new SacredMod() {
+        });
+        return mod;
     }
 
     /** Listeners have to be reachable by reflection, hence public. */
@@ -71,7 +83,7 @@ class BusTest {
     void runsInPriorityOrder() {
         Order listener = new Order();
         Bus bus = new Bus();
-        bus.register("order", listener);
+        bus.register(mod("order"), listener);
         bus.dispatch(gold());
         assertEquals(List.of(Priority.FIRST, Priority.NORMAL, Priority.LAST,
                              Priority.MONITOR), listener.seen);
@@ -105,8 +117,8 @@ class BusTest {
     void vetoedEventSkipsOnlyTheListenersThatAskedToBeSkipped() {
         Both listener = new Both();
         Bus bus = new Bus();
-        bus.register("vetoer", new Vetoer());
-        bus.register("both", listener);
+        bus.register(mod("vetoer"), new Vetoer());
+        bus.register(mod("both"), listener);
         bus.dispatch(gold());
         assertFalse(listener.careful, "ignoreVetoed listener was called anyway");
         assertTrue(listener.careless, "dispatch stopped at the veto");
@@ -137,7 +149,7 @@ class BusTest {
     void monitorSeesEverythingAndChangesNothing() {
         Meddler listener = new Meddler();
         Bus bus = new Bus();
-        bus.register("meddler", listener);
+        bus.register(mod("meddler"), listener);
         Gold event = gold();
         bus.dispatch(event);
         assertEquals(200, listener.sawValue, "a monitor should see what was decided");
@@ -158,8 +170,8 @@ class BusTest {
     @Test
     void twoListenersDoublingTheSameNumberCompose() {
         Bus bus = new Bus();
-        bus.register("one", new Doubler());
-        bus.register("two", new Doubler());
+        bus.register(mod("one"), new Doubler());
+        bus.register(mod("two"), new Doubler());
         Gold event = gold();
         bus.dispatch(event);
         // 100 -> 200 -> 400. The old shape gave 200, because the second
@@ -171,7 +183,7 @@ class BusTest {
     @Test
     void resetDiscardsEarlierWorkAndLiftsAVeto() {
         Bus bus = new Bus();
-        Events events = events(bus, "fold");
+        EventRegistry events = events(bus, "fold");
         events.decide(Gold.class, Priority.FIRST, e -> Gold.Mutation.change(200));
         events.decide(Gold.class, Priority.NORMAL, e -> Gold.Mutation.veto());
         events.decide(Gold.class, Priority.LAST, e -> Gold.Mutation.reset());
@@ -185,7 +197,7 @@ class BusTest {
     @Test
     void aLastMutationEndsTheChainButNotTheMonitors() {
         Bus bus = new Bus();
-        Events events = events(bus, "fold");
+        EventRegistry events = events(bus, "fold");
         List<String> seen = new ArrayList<>();
         events.decide(Gold.class, Priority.FIRST, e -> {
             seen.add("first");
@@ -224,7 +236,7 @@ class BusTest {
     void aListenerOnASupertypeStillGetsTheSubtype() {
         Wide listener = new Wide();
         Bus bus = new Bus();
-        bus.register("wide", listener);
+        bus.register(mod("wide"), listener);
         bus.dispatch(gold());
         bus.dispatch(new MobHit(Map.of("name", "TYPE_NPC_GHUL01")));
         // Gold is a Decision is an Event. MobHit is only an Event.
@@ -245,7 +257,7 @@ class BusTest {
     @Test
     void supertypeAndSubtypeListenersShareOneRegistrationOrder() {
         Bus bus = new Bus();
-        Events events = events(bus, "mixed");
+        EventRegistry events = events(bus, "mixed");
         List<String> seen = new ArrayList<>();
         // Registered across three different declared types, at two priorities.
         events.on(Event.class, e -> seen.add("a"));
@@ -261,7 +273,7 @@ class BusTest {
     @Test
     void theResolvedListIsRebuiltWhenSomethingIsRegisteredLater() {
         Bus bus = new Bus();
-        Events events = events(bus, "late");
+        EventRegistry events = events(bus, "late");
         List<String> seen = new ArrayList<>();
         events.on(Gold.class, e -> seen.add("early"));
         bus.dispatch(gold());
@@ -298,8 +310,8 @@ class BusTest {
         Broken broken = new Broken();
         Survivor survivor = new Survivor();
         Bus bus = new Bus();
-        bus.register("broken", broken);
-        bus.register("survivor", survivor);
+        bus.register(mod("broken"), broken);
+        bus.register(mod("survivor"), survivor);
         for (int i = 0; i < 5; i++) {
             bus.dispatch(gold());
         }
@@ -313,7 +325,7 @@ class BusTest {
     @Test
     void aLambdaListenerHonoursPriority() {
         Bus bus = new Bus();
-        Events events = events(bus, "lambda");
+        EventRegistry events = events(bus, "lambda");
         List<Priority> seen = new ArrayList<>();
         events.on(Gold.class, Priority.LAST, e -> seen.add(Priority.LAST));
         events.on(Gold.class, e -> seen.add(Priority.NORMAL));
@@ -325,7 +337,7 @@ class BusTest {
     @Test
     void aLambdaListenerHonoursIgnoreVetoed() {
         Bus bus = new Bus();
-        Events events = events(bus, "lambda");
+        EventRegistry events = events(bus, "lambda");
         List<String> seen = new ArrayList<>();
         events.decide(Gold.class, Priority.FIRST, e -> Gold.Mutation.veto());
         events.on(Gold.class, Priority.NORMAL, true, e -> seen.add("careful"));
@@ -337,7 +349,7 @@ class BusTest {
     @Test
     void aLambdaMonitorChangesNothingEither() {
         Bus bus = new Bus();
-        Events events = events(bus, "lambda");
+        EventRegistry events = events(bus, "lambda");
         events.decide(Gold.class, e -> Gold.Mutation.change(200));
         events.decide(Gold.class, Priority.MONITOR, e -> Gold.Mutation.veto());
         Gold event = gold();
@@ -349,7 +361,7 @@ class BusTest {
     @Test
     void aLambdaCanBeUnregisteredAgain() {
         Bus bus = new Bus();
-        Events events = events(bus, "lambda");
+        EventRegistry events = events(bus, "lambda");
         List<String> seen = new ArrayList<>();
         Handle handle = events.on(Gold.class, e -> seen.add("once"));
         events.on(Gold.class, e -> seen.add("always"));
@@ -363,7 +375,7 @@ class BusTest {
     @Test
     void unregisteringFromInsideADispatchDoesNotDisturbIt() {
         Bus bus = new Bus();
-        Events events = events(bus, "lambda");
+        EventRegistry events = events(bus, "lambda");
         List<String> seen = new ArrayList<>();
         Handle[] self = new Handle[1];
         self[0] = events.on(Gold.class, e -> {
@@ -408,7 +420,7 @@ class BusTest {
     void unregisteringFromAnotherThreadWhileAListenerRunsTakesEffectAtOnce()
             throws InterruptedException {
         Bus bus = new Bus();
-        Events events = events(bus, "cross");
+        EventRegistry events = events(bus, "cross");
         List<String> seen = Collections.synchronizedList(new ArrayList<>());
         CountDownLatch inside = new CountDownLatch(1);
         CountDownLatch gone = new CountDownLatch(1);
@@ -444,7 +456,7 @@ class BusTest {
         int window = 8;
 
         Bus bus = new Bus();
-        Events events = events(bus, "race");
+        EventRegistry events = events(bus, "race");
         Seen always = new Seen();
         events.on(Gold.class, always::record);
 
@@ -523,5 +535,105 @@ class BusTest {
         for (Seen seen : transients) {
             assertFalse(seen.ids.contains((long) rounds), "an unregistered listener still ran");
         }
+    }
+
+    // --- handles --------------------------------------------------------
+
+    @Test
+    void aHandleSaysWhatItIsAndWhoseItIs() {
+        Bus bus = new Bus();
+        LoadedMod owner = mod("named");
+        List<Handle> handles = bus.register(owner, new Vetoer());
+        assertEquals(1, handles.size());
+        Handle handle = handles.get(0);
+        assertSame(owner.instance(), handle.getMod());
+        assertEquals(Gold.class, handle.getEventType());
+        assertEquals(Priority.FIRST, handle.getPriority());
+        assertFalse(handle.isIgnoreVetoed());
+        assertEquals(Vetoer.class, handle.getListenerClass());
+        assertEquals("veto", handle.getMethodName());
+        assertTrue(handle.isRegistered());
+
+        Handle lambda = new ModEvents(owner, bus).on(Gold.class, Priority.LAST, true, e -> {
+        });
+        assertSame(owner.instance(), lambda.getMod());
+        assertNull(lambda.getListenerClass());
+        assertNull(lambda.getMethodName());
+        assertTrue(lambda.isIgnoreVetoed());
+        lambda.unregister();
+        assertFalse(lambda.isRegistered());
+    }
+
+    @Test
+    void getEventsIsAnUnmodifiableSnapshotOfEveryMod() {
+        Bus bus = new Bus();
+        EventRegistry one = events(bus, "one");
+        EventRegistry two = events(bus, "two");
+        Handle first = one.on(Gold.class, e -> {
+        });
+        Handle second = two.on(Event.class, e -> {
+        });
+        List<Handle> snapshot = one.getEvents();
+        assertEquals(List.of(first, second), snapshot);
+        assertEquals(snapshot, two.getEvents(), "each mod should see every mod's listeners");
+
+        Handle third = one.on(MobHit.class, e -> {
+        });
+        first.unregister();
+        assertEquals(List.of(first, second), snapshot, "the snapshot followed the bus");
+        assertFalse(snapshot.get(0).isRegistered());
+        assertEquals(List.of(second, third), one.getEvents());
+        assertThrows(UnsupportedOperationException.class, () -> snapshot.add(third));
+        assertThrows(UnsupportedOperationException.class, () -> snapshot.remove(0));
+    }
+
+    public static final class Two {
+
+        @Subscribe
+        public void gold(Gold event) {
+        }
+
+        @Subscribe
+        public void any(Event event) {
+        }
+    }
+
+    @Test
+    void anObjectsListenersComeOffByObjectAndByType() {
+        Bus bus = new Bus();
+        EventRegistry events = events(bus, "objects");
+        Two a = new Two();
+        Two b = new Two();
+        List<Handle> handles = events.register(a);
+        events.register(b);
+        assertEquals(2, handles.size());
+        assertThrows(UnsupportedOperationException.class, handles::clear);
+        assertEquals(4, bus.size());
+
+        assertEquals(1, events.unregister(a, Gold.class));
+        assertEquals(3, bus.size());
+        assertEquals(1, events.unregister(a));
+        assertEquals(0, events.unregister(a));
+        assertEquals(2, bus.size(), "b's listeners went with a's");
+
+        Handle any = events.getEvents().get(0);
+        assertTrue(events.unregister(any));
+        assertFalse(events.unregister(any));
+        assertEquals(1, bus.size());
+    }
+
+    @Test
+    void droppingAModTakesItsListenersAndNoOneElses() {
+        Bus bus = new Bus();
+        LoadedMod gone = mod("gone");
+        EventRegistry goneEvents = new ModEvents(gone, bus);
+        goneEvents.register(new Two());
+        Handle lambda = goneEvents.on(Gold.class, e -> {
+        });
+        Handle kept = events(bus, "kept").on(Gold.class, e -> {
+        });
+        assertEquals(3, bus.dropMod(gone));
+        assertFalse(lambda.isRegistered());
+        assertEquals(List.of(kept), bus.handles());
     }
 }

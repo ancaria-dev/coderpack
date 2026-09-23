@@ -1,10 +1,10 @@
 package dev.ancaria.coderpack.zygote;
 
+import dev.ancaria.coderpack.api.EntityRegistry;
 import dev.ancaria.coderpack.api.Realm;
 import dev.ancaria.coderpack.api.entity.Creature;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,29 +17,26 @@ import java.util.Map;
 final class RealmLink implements Realm {
 
     private final GameLink game;
+    private final EntityLink entities;
 
     RealmLink(GameLink game) {
         this.game = game;
+        this.entities = new EntityLink(game);
     }
 
     @Override
-    public List<Creature> creatures() {
-        return unpack(game.call("world.creatures", Map.of()));
+    public int getRegion() {
+        return number(game.call("world.state", Map.of()).get("region"), 0);
     }
 
     @Override
-    public List<Creature> creaturesNear(int x, int y, int radius) {
-        Map<String, String> fields = new LinkedHashMap<>();
-        fields.put("x", Integer.toString(x));
-        fields.put("y", Integer.toString(y));
-        fields.put("radius", Integer.toString(radius));
-        return unpack(game.call("world.creatures", fields));
+    public int getSectorX() {
+        return number(game.call("world.state", Map.of()).get("sx"), -1);
     }
 
     @Override
-    public Creature creature(int ref) {
-        Map<String, String> answer = game.call("world.creature", "ref", ref);
-        return answer.get("ok") == null ? null : new Creature(answer);
+    public int getSectorY() {
+        return number(game.call("world.state", Map.of()).get("sy"), -1);
     }
 
     @Override
@@ -48,26 +45,52 @@ final class RealmLink implements Realm {
     }
 
     @Override
-    public boolean hp(int ref, long value) {
+    public boolean setHp(int ref, long hp) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("ref", Integer.toString(ref));
-        fields.put("value", Long.toString(value));
+        fields.put("value", Long.toString(hp));
         return game.call("world.hp", fields).get("ok") != null;
     }
 
     @Override
-    public int region() {
-        return number(game.call("world.state", Map.of()).get("region"), 0);
+    public EntityRegistry getEntityRegistry() {
+        return entities;
     }
 
-    @Override
-    public int sectorX() {
-        return number(game.call("world.state", Map.of()).get("sx"), -1);
-    }
+    /** The hero from the event cache, the creatures from the wire. */
+    static final class EntityLink implements EntityRegistry {
 
-    @Override
-    public int sectorY() {
-        return number(game.call("world.state", Map.of()).get("sy"), -1);
+        private final GameLink game;
+
+        EntityLink(GameLink game) {
+            this.game = game;
+        }
+
+        @Override
+        public PlayerLink getPlayer() {
+            PlayerLink player = game.playerLink();
+            return player.present() ? player : null;
+        }
+
+        @Override
+        public List<Creature> getCreatures() {
+            return unpack(game.call("world.creatures", Map.of()));
+        }
+
+        @Override
+        public List<Creature> getCreaturesNear(int x, int y, int radius) {
+            Map<String, String> fields = new LinkedHashMap<>();
+            fields.put("x", Integer.toString(x));
+            fields.put("y", Integer.toString(y));
+            fields.put("radius", Integer.toString(radius));
+            return unpack(game.call("world.creatures", fields));
+        }
+
+        @Override
+        public Creature getCreature(int ref) {
+            Map<String, String> answer = game.call("world.creature", "ref", ref);
+            return answer.get("ok") == null ? null : new Creature(answer);
+        }
     }
 
     // ref:type:level:hp:maxHp:x:y:player joined by ';', and each type's name
@@ -105,7 +128,7 @@ final class RealmLink implements Realm {
             }
             out.add(new Creature(fields));
         }
-        return Collections.unmodifiableList(out);
+        return List.copyOf(out);
     }
 
     private static int number(String raw, int fallback) {

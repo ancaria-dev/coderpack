@@ -19,10 +19,10 @@ import javax.annotation.Nullable;
  * that order: the reference is swapped first, then the object it names is
  * edited.
  *
- * <p>Editing an object does belong to {@link dev.ancaria.coderpack.api.Game}
+ * <p>Editing an object does belong to {@link dev.ancaria.coderpack.api.TypeRegistry}
  * in principle, and it is there too, as
- * {@link dev.ancaria.coderpack.api.Game#retype(int, int)} and
- * {@link dev.ancaria.coderpack.api.Game#reshape(int, Item)}. What keeps it
+ * {@link dev.ancaria.coderpack.api.TypeRegistry#retype(int, int)} and
+ * {@link dev.ancaria.coderpack.api.TypeRegistry#reshape(int, Item)}. What keeps it
  * here as well is timing rather than taste: a command is a round trip through
  * the host while the game thread is stopped waiting for this verdict, and the
  * edit has to land before the game picks the item up. In the verdict is the

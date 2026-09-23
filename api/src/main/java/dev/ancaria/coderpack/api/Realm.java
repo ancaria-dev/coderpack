@@ -1,38 +1,28 @@
 package dev.ancaria.coderpack.api;
 
-import dev.ancaria.coderpack.api.entity.Creature;
-
-import java.util.List;
-
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
- * The world around the hero: the creatures in it, and where the hero is in the
- * game's own grid. Reached through {@link Game#world()}.
+ * The world around the hero: where the hero is in the game's own grid, and
+ * acting on the creatures in it. Reached through {@link Game#getWorld()}.
  *
- * <p>Every call is one round-trip to the game, and what comes back is a
- * snapshot. A creature list does not follow the creatures around, so ask again
- * rather than keeping one. Creatures are addressed by {@link Creature#getRef()},
- * which is stable for the session and means nothing across launches.
+ * <p>Every call is one round-trip to the game. Creatures are addressed by
+ * {@link dev.ancaria.coderpack.api.entity.Creature#getRef()}, which is stable
+ * for the session and means nothing across launches.
  */
 public interface Realm {
 
     /**
-     * Every creature the game currently holds: monsters, animals, NPCs and the
-     * hero. Only what is streamed in, which is the sectors around the hero, not
-     * the whole map. Empty on the main menu.
+     * The map cell the hero last entered, as {@link dev.ancaria.coderpack.api.event.Region}
+     * reports it, or 0 until the hero has crossed one since the loader attached.
      */
-    @Nonnull
-    List<Creature> creatures();
+    int getRegion();
 
-    /** Only the creatures within {@code radius} world units of a point. */
-    @Nonnull
-    List<Creature> creaturesNear(int x, int y, int radius);
+    /** The sector the hero last entered, or -1 until one was crossed. */
+    int getSectorX();
 
-    /** A fresh snapshot of one creature, or null when the ref is not one. */
-    @Nullable
-    Creature creature(int ref);
+    /** The sector the hero last entered, or -1 until one was crossed. */
+    int getSectorY();
 
     /**
      * Sets a creature's HP to 0, the same single call the game's own sudden-death
@@ -42,17 +32,14 @@ public interface Realm {
      */
     boolean kill(int ref);
 
-    /** Sets a creature's current HP through the game's own setter. */
-    boolean hp(int ref, long value);
-
     /**
-     * The map cell the hero last entered, as {@link dev.ancaria.coderpack.api.event.Region}
-     * reports it, or 0 until the hero has crossed one since the loader attached.
+     * Sets a creature's current HP through the game's own setter.
+     *
+     * @return false when the ref is not a creature
      */
-    int region();
+    boolean setHp(int ref, long hp);
 
-    /** The sector the hero last entered, or -1 until one was crossed. */
-    int sectorX();
-
-    int sectorY();
+    /** The hero and the creatures around it. */
+    @Nonnull
+    EntityRegistry getEntityRegistry();
 }

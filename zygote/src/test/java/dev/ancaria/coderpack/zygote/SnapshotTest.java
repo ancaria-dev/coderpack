@@ -5,16 +5,20 @@ import dev.ancaria.coderpack.api.entity.CombatArts;
 import dev.ancaria.coderpack.api.entity.Creature;
 import dev.ancaria.coderpack.api.entity.Sheet;
 import dev.ancaria.coderpack.api.entity.Skills;
+import dev.ancaria.coderpack.api.entity.Item;
 import dev.ancaria.coderpack.api.entity.Stats;
+import dev.ancaria.coderpack.api.event.Loot;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The packed answers the agent sends for direct queries, read back. */
@@ -91,5 +95,40 @@ class SnapshotTest {
                 "resist", "55,70,31,12"));
         assertEquals(430, sheet.getArmorPercent());
         assertEquals(31, sheet.getResistance(Sheet.Element.MAGIC));
+    }
+
+    @Test
+    void typesArriveInTheGamesOrder() {
+        Map<String, Integer> types = TypeLink.unpack(Map.of("types",
+                "TYPE_B:2,TYPE_A:1,broken,TYPE_C:x"));
+        assertEquals(List.of("TYPE_B", "TYPE_A"), List.copyOf(types.keySet()));
+    }
+
+    @Test
+    void nothingHandedToAModCanBeEdited() {
+        List<Creature> creatures = RealmLink.unpack(Map.of(
+                "creatures", "812:50:5:10:40:222850:137608:0"));
+        assertThrows(UnsupportedOperationException.class, () -> creatures.add(creatures.get(0)));
+        Map<String, Integer> types = TypeLink.unpack(Map.of("types", "TYPE_A:1"));
+        assertThrows(UnsupportedOperationException.class, () -> types.put("TYPE_B", 2));
+
+        Loot loot = new Loot(Map.of("items", "5:7:TYPE_OBJECT_RING01"));
+        assertEquals("TYPE_OBJECT_RING01", loot.getItems().get(0).getTypeName());
+        assertThrows(UnsupportedOperationException.class, () -> loot.getItems().clear());
+        assertThrows(UnsupportedOperationException.class, () -> loot.getFields().put("x", "y"));
+
+        Item item = new Item(Map.of("mods", "601:3,802:12"));
+        assertEquals(3, item.getModifiers().get(601));
+        assertThrows(UnsupportedOperationException.class, () -> item.getModifiers().clear());
+
+        Iterator<Attributes.Entry> entries = new Attributes(Map.of("values", "1,2,3,4,5,6")).iterator();
+        entries.next();
+        assertThrows(UnsupportedOperationException.class, entries::remove);
+        Iterator<Skills.Slot> slots = new Skills(Map.of("levels", "1,2")).iterator();
+        slots.next();
+        assertThrows(UnsupportedOperationException.class, slots::remove);
+        Iterator<CombatArts.Art> arts = new CombatArts(Map.of("arts", "0:67:0:13:2")).iterator();
+        arts.next();
+        assertThrows(UnsupportedOperationException.class, arts::remove);
     }
 }

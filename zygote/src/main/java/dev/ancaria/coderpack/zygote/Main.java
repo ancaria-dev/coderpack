@@ -32,24 +32,26 @@ public final class Main {
     // available while this class initialises.
     private static Pipe PIPE;
     private static GameLink GAME;
+    private static Mods MODS;
 
     private static long dropped;
     private static volatile boolean working;
 
     public static void main(String[] args) throws Exception {
         claimStdout();
-        connect(argument(args, "--pipe", null));
         Path mods = Path.of(argument(args, "--mods", "mods")).toAbsolutePath().normalize();
         // Mods live in <Sacred Gold>/mods, so the game folder is one level up.
         // A mod writing a file needs that, not the working directory, which
         // belongs to whoever started the host.
         Path game = mods.getParent() == null ? mods : mods.getParent();
+        connect(argument(args, "--pipe", null), game);
         // The launcher passes the ticked boxes. Without it, everything loads.
         String only = argument(args, "--enable", null);
         Set<String> enabled = only == null
                 ? null
                 : Set.of(only.isEmpty() ? new String[0] : only.split(","));
-        Mods.loadAll(mods, game, enabled, BUS, GAME);
+        MODS = new Mods(game, BUS, GAME, ModLog.open(game));
+        MODS.loadAll(mods, enabled);
 
         Thread dispatcher = new Thread(Main::dispatchLoop, "sal-dispatch");
         dispatcher.setDaemon(true);
@@ -62,6 +64,7 @@ public final class Main {
                 case "BYE" -> {
                     Log.info("Host said goodbye.");
                     drain();
+                    MODS.shutdown();
                     quit();
                 }
                 // A verdict the game is waiting for must never be dropped.
@@ -71,6 +74,7 @@ public final class Main {
         }
         drain();
         Log.info("Host closed the pipe.");
+        MODS.shutdown();
         quit();
     }
 
@@ -99,14 +103,14 @@ public final class Main {
      * put frames on stdout again, quietly, on the one path where nothing else
      * is guarding it.
      */
-    private static void connect(String name) throws IOException {
+    private static void connect(String name, Path game) throws IOException {
         if (name == null) {
             PIPE = Pipe.overStdio();
         } else {
             PIPE = Pipe.over(name);
             Log.info("Connected to the host on " + name);
         }
-        GAME = new GameLink(PIPE);
+        GAME = new GameLink(PIPE, game);
     }
 
     /**
