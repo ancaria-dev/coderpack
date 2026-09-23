@@ -24,6 +24,16 @@ statement rather than the loader saying so at run time. Eight events have one:
 and `Console`. `Console` has no `Change`: a veto is its whole answer, and it
 means the line was a mod's own command.
 
+A mod that takes a line can answer in the console with
+`getGame().getConsole().print(text)`. That is the agent command
+`console.print` with one field, `text`, and the agent shows it the way the
+game shows its HELP list, through the game's own console event. It is one
+line: control characters become spaces, anything past 255 characters is cut,
+and an empty line is refused. The reply means the line is queued. The agent
+sends it from the engine thread on its next tick, at most eight lines per
+tick with 64 waiting. The mapping behind it is static so far, so it has not
+yet been seen working in the game.
+
 The old design had the event itself carry the writes. That is why this one
 does not: a getter read the value as it arrived while a setter wrote into a
 separate map, so a second mod editing the same field never saw the first one
