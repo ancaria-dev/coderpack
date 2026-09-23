@@ -37,7 +37,7 @@ responsibilities into the agent, API, or zygote.
 | `agent/src/*.js` | One agent module per concern. The numeric prefix defines load order. |
 | `agent/src/gen/addr.js` | Gitignored output from `tools/addr.py`. It contains addresses and the build fingerprint. |
 | `agent/signatures.json` | The bytes found at each hook site in a real `pureHD.exe`. |
-| `api/` | Events, handles, and interfaces exposed to mods. |
+| `api/` | Events, entities, registries, and the `SacredMod` base class exposed to mods. `api/internal` is the loader's side and not for mods. |
 | `api-kotlin/` | Kotlin extensions over `api`, in package `dev.ancaria.coderpack.ktx`. One file per group of events. |
 | `zygote/` | Mod loading and JVM-side protocol handling. `Ranges` defines version syntax and `Compat` applies its two compatibility checks. |
 | `tools/` | `addr.py` generates addresses, `hooksafe.py` checks hook sites and writes signatures, and `paths.py` locates mappings. |
@@ -134,14 +134,14 @@ required. The generated descriptor also contains `api`, while `loader` is
 optional:
 
 ```toml
-api = "[2,3)"
+api = "[3,4)"
 loader = "[0.1.20,)"
 ```
 
 Both fields use the Maven range notation documented by `Ranges`, which is also
 the notation NeoForge writes in `mods.toml`. The current Gradle plugin writes
-`api = "[2,3)"` by default, meaning API contract 2 and no other major. A mod can
-declare a different range such as `[2,4)` through `apiRange`, but that range must include
+`api = "[3,4)"` by default, meaning API contract 3 and no other major. A mod can
+declare a different range such as `[3,5)` through `apiRange`, but that range must include
 the contract used by the toolchain. The exact meaning of a bare value is a
 deliberate difference from Maven’s soft bare-version rule and preserves older
 descriptors.
@@ -175,7 +175,7 @@ EOF, zygote gives queued work up to two seconds to drain and then calls
 Registration and unregistration remain safe from a mod’s own threads. A
 running dispatch uses an immutable listener snapshot.
 
-Commands sent through `context.game()` wait up to two seconds for a `RES`.
+Commands sent through `getContext().getGame()` wait up to two seconds for a `RES`.
 Timeout, interruption, or another command failure logs a warning and returns
 an empty result. Decidable events stop the game thread while the host waits. Its
 250 ms deadline is checked by a 125 ms watchdog, so an unanswered fallback is
@@ -200,6 +200,50 @@ build repository’s verifier, and `pin` in the launcher. Their shared test
 corpus is the specification. Add every new case to all three implementations
 and test suites.
 
+## Mod lifecycle and the registries
+
+A mod extends the abstract class `SacredMod`. Zygote creates its entry point
+through `api.internal.ModBinding`: it binds the mod's `Context` to the current
+thread, calls the no-argument constructor, and clears the binding in `finally`.
+`SacredMod`'s own constructor takes the binding, and with it tells the loader
+which instance claimed it, so `getContext()` works in the subclass's field
+initialisers and `getCurrentMod()` answers from inside the constructor. The
+binding is taken once; any other instance, including one made with `new` in a
+test, throws `IllegalStateException` from `getContext()`. `onLoad()` has no
+parameter.
+
+`Context` is `log`, `print`, `getGame()`, `getUptime()`, `getDescriptor()` and
+`getRegistry()`. `log` goes to `<game>/logs/mods.log` through `ModLog`: one
+shared daemon writer draining a bounded queue, batching and flushing on a short
+timer, never blocking the caller and never throwing into it; a full queue drops
+and counts. `print` goes to `System.out`, which `Main.claimStdout` has already
+pointed at stderr. Both write `[yyyy-MM-dd HH:mm:ss.SSS] [<mod id>]: <message>`.
+
+`Registry` has two halves. `ModRegistry` lists mods in load order, loads one
+more with `register(Path)` (unchecked `ModLoadException` on failure) and takes
+one out with `unregister(id)`. `EventRegistry`, which replaced `Events`, is
+`register`, `on`, `decide`, the `getEvents()` snapshot of every mod's handles,
+and three `unregister` forms. Every `Handle` knows its mod, event type,
+priority, `ignoreVetoed` and, for `@Subscribe`, its class and method; `Bus`
+keeps that per listener, which is what lets `Bus.dropMod` take a mod out whole.
+
+`Mods` keeps one `URLClassLoader` per mod. Unregistering drops the mod's
+listeners, calls `onUnload` (an exception is logged, not rethrown), drops
+anything `onUnload` registered, then closes the loader. A mod whose `onLoad`
+throws is taken back out the same way and never listed. On `BYE` or EOF
+`Mods.shutdown` calls every `onUnload` newest first on one thread with a
+three-second limit, then closes the log. It leaves class loaders open, because
+a mod's shutdown hook may still load a class from its jar while the JVM exits.
+
+Zygote has its own `Registry` class, the wire-name table. `ModContext` names
+the API's `Registry` in full for that reason.
+
+Every public accessor in `api` is a JavaBean getter (`getX()`, `isX()` for a
+boolean), because Kotlin sees only those as properties. Records are final
+classes with getters for the same reason. Static factories, `get(key)`,
+`size()`, `iterator()`, `find(...)` and a mutation's `last()` keep their names.
+Every collection the API returns is unmodifiable.
+
 ## Event model
 
 `docs/EVENTS.md` is the contract. This is the shape of its implementation.
@@ -216,13 +260,16 @@ game write. The typed read-only events are `LevelUp`, `Hero`, `World`,
 fails when one of them would reach a mod as `Unknown`; add a name there with
 its `Registry` entry.
 
-The direct side of the API is `Game.player()` and `Game.world()`. The player's
-level, HP, gold, experience and position are cached from events and free to
-read. `attributes()`, `skills()`, `combatArts()`, `stats()` and `sheet()` on
-`Player`, and everything on `Realm`, are one command each and return a
-snapshot built from the flat answer; `RealmLink.unpack` and the snapshot
-constructors are where the packed formats are read, and `SnapshotTest` pins
-them. Each agent command lives in the module that owns its data (`45-world`,
+The direct side of the API is `Game`: `getWorld()` is the `Realm` (region,
+sector, `kill`, `setHp`) and its `getEntityRegistry()` (the player and the
+creatures), `getTypeRegistry()` is type names, ids, `retype` and `reshape`, and
+`getConsole()` prints into the game's console. The player's level, HP, gold,
+experience and position are cached from events and free to read.
+`getAttributes()`, `getSkills()`, `getCombatArts()`, `getStats()` and
+`getSheet()` on `Player`, and everything on `Realm`, `EntityRegistry` and
+`TypeRegistry`, are one command each and return a snapshot built from the flat
+answer; `RealmLink.unpack`, `TypeLink.unpack` and the snapshot constructors are
+where the packed formats are read, and `SnapshotTest` pins them. Each agent command lives in the module that owns its data (`45-world`,
 `47-entities`, `52-journal`, `72-arts`, `90-cmd`), so leaving a module out with
 `--skip` takes its commands with it and the Java side sees an empty answer.
 
@@ -230,21 +277,21 @@ An event is immutable to a mod. What a listener may do is its return type:
 `void` observes, and anything else must be that event's `Mutation`, which
 `Bus.register` checks and the mod linter checks earlier. `EventMutation` is
 sealed with four kinds, `NONE`, `RESET`, `VETO` and `CHANGE`, plus `last()`
-across all four. `Fold` applies one answer and is the only thing that writes to
+across all four (`isLast()` reads it back). `Fold` applies one answer and is the only thing that writes to
 an event; there is no `Guard` any more, because there is no write to guard.
 
 A wire event without a typed registry entry becomes `Unknown` with its original
 name and fields. Listeners registered for `Event` therefore receive typed and
 unknown events. Dispatch order is `FIRST`, `NORMAL`, `LAST`, then `MONITOR`,
 with registration order inside each priority. `Bus` folds each answer before
-calling the next listener, which is what makes `Amount.value()` mean "with
+calling the next listener, which is what makes `Amount.getValue()` mean "with
 everyone before me in it" and what lets two mods scaling the same number
 compose. A veto does not stop later listeners; `ignoreVetoed = true` skips a
 listener once an earlier one has vetoed, and only a later `RESET` lifts it.
 `last()` ends the deciding but never skips the `MONITOR` step. A `MONITOR`
 listener that returns a mutation has it dropped with one warning.
 
-The API uses JSR 305 nullability annotations. Each of its three packages has a
+The API uses JSR 305 nullability annotations. Each of its four packages has a
 `package-info.java` with `@ParametersAreNonnullByDefault`. Mark nullable
 parameters explicitly, and mark every reference return with `@Nonnull` or
 `@Nullable`. The dependency
