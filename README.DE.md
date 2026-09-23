@@ -136,18 +136,19 @@ vorherigen Entscheidungen und muss `void` zurückgeben. Der Mod-Linter weist
 eine `MONITOR`-Methode ab, die eine Mutation zurückgibt, und der Loader
 verwirft eine solche Mutation mit einer Warnung.
 
-Sieben Ereignisse lassen sich entscheiden: `Gold`, `Experience`,
-`Damage`, `Skill`, `Attribute`, `CombatArt` und `Pickup`. Der Rest meldet
+Acht Ereignisse lassen sich entscheiden: `Gold`, `Experience`,
+`Damage`, `Skill`, `Attribute`, `CombatArt`, `Pickup` und `Console`, dessen
+Veto eine Konsolenzeile als Befehl eines Mods übernimmt. Der Rest meldet
 etwas, das schon passiert ist, und ist nur lesbar:
 
-- Held und Sitzung: `Hero`, `World`, `Position`, `LevelUp`, `Death`,
-  `NearDeath`;
+- Held und Sitzung: `Hero`, `World`, `Save`, `Load`, `Position`, `LevelUp`,
+  `Death`, `NearDeath`;
 - was aus einer Entscheidung wurde: `HealthChanged`, `MaxHealthChanged`,
   `GoldChanged`, `ExperienceChanged`, `SkillChanged`, `AttributeChanged`,
   `SkillPointsChanged`, `AttributePointsChanged`, `CombatArtChanged`;
 - die Welt: `Region`, `Sector`, `Spawn`, `Despawn`, `MobHit`, `MobDeath`;
-- das Tagebuch: `Kill`, `Resurrection`, `Discovery`;
-- Gegenstände: `Moved`, `Equip`, `Stored`.
+- Tagebuch und Quests: `Kill`, `Resurrection`, `Discovery`, `Quest`;
+- Gegenstände: `Loot`, `Drink`, `Trade`, `Moved`, `Equip`, `Stored`.
 
 Was wohin gehört, ergibt sich aus der Stelle des Hooks. Ein Veto ist nur
 möglich, wenn der Hook vor dem Schreibzugriff sitzt und Coderpack den
@@ -269,8 +270,8 @@ benachbarte Repositorys bauen.
 Die gewünschte Revision steht in `.mappings-ref`, derzeit `master`. Für einen
 reproduzierbaren Build gehört dort ein Tag oder Commit hinein. Spieladressen
 werden nicht von Hand in den Agent geschrieben. `addr.py` erzeugt daraus
-`agent/src/gen/addr.js` mit 40 RVAs, drei globalen Adressen und den Signaturen
-von 29 Hook-Stellen.
+`agent/src/gen/addr.js` mit 52 RVAs, vier globalen Adressen und den Signaturen
+von 38 Hook-Stellen.
 
 Ohne Argument sucht `hooksafe.py` unter
 `D:\SteamLibrary\steamapps\common\Sacred Gold` nach `pureHD.exe`, `Sacred.exe`
@@ -284,7 +285,7 @@ verweigert unter anderem Stellen, bei denen ein Sprung in den überschriebenen
 Bereich führt, eine Flag-setzende Instruktion von ihrem bedingten Sprung
 getrennt wird oder sich zwei Hook-Bereiche überlappen. Weitere riskante Formen
 werden als Warnung ausgegeben. Mit `--signatures` schreibt das Skript außerdem
-die ersten acht Byte jeder der 29 Hook-Stellen nach
+die ersten acht Byte jeder der 38 Hook-Stellen nach
 `agent/signatures.json`. Der Agent vergleicht diese Signaturen beim Einhängen
 mit dem laufenden Prozess und warnt bei einem abweichenden Build. Die Hooks
 werden trotz der Warnung installiert.

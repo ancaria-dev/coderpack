@@ -19,8 +19,10 @@ no rule to remember: it has nothing to return, so it cannot decide anything.
 
 A returning listener must return exactly `<its event>.Mutation`. An event with
 no `Mutation` type cannot be decided, and the compiler says so at the return
-statement rather than the loader saying so at run time. Seven events have one:
-`Gold`, `Experience`, `Damage`, `Skill`, `Attribute`, `CombatArt` and `Pickup`.
+statement rather than the loader saying so at run time. Eight events have one:
+`Gold`, `Experience`, `Damage`, `Skill`, `Attribute`, `CombatArt`, `Pickup`
+and `Console`. `Console` has no `Change`: a veto is its whole answer, and it
+means the line was a mod's own command.
 
 The old design had the event itself carry the writes. That is why this one
 does not: a getter read the value as it arrived while a setter wrote into a

@@ -127,16 +127,17 @@ public final class DoubleGold implements SacredMod {
 отбрасывает такую мутацию с одним предупреждением.
 
 Решать можно `Gold`, `Experience`, `Damage`, `Skill`, `Attribute`,
-`CombatArt` и `Pickup`. Остальные события только сообщают о случившемся:
+`CombatArt`, `Pickup` и `Console`: veto на строке консоли забирает её как
+команду мода. Остальные события только сообщают о случившемся:
 
-- герой и сессия: `Hero`, `World`, `Position`, `LevelUp`, `Death`,
-  `NearDeath`;
+- герой и сессия: `Hero`, `World`, `Save`, `Load`, `Position`, `LevelUp`,
+  `Death`, `NearDeath`;
 - чем закончилось решение: `HealthChanged`, `MaxHealthChanged`,
   `GoldChanged`, `ExperienceChanged`, `SkillChanged`, `AttributeChanged`,
   `SkillPointsChanged`, `AttributePointsChanged`, `CombatArtChanged`;
 - мир: `Region`, `Sector`, `Spawn`, `Despawn`, `MobHit`, `MobDeath`;
-- журнал: `Kill`, `Resurrection`, `Discovery`;
-- предметы: `Moved`, `Equip`, `Stored`.
+- журнал и квесты: `Kill`, `Resurrection`, `Discovery`, `Quest`;
+- предметы: `Loot`, `Drink`, `Trade`, `Moved`, `Equip`, `Stored`.
 
 Неизвестное загрузчику строковое событие не теряется. Оно приходит подписчикам
 `Event` как `Unknown`. Полный контракт описан в [docs/EVENTS.md](docs/EVENTS.md).
@@ -246,9 +247,9 @@ python tests/replay.py         вся Java-часть, игра не нужна
 `mappings.json` с GitHub. Ревизию задаёт `.mappings-ref`, где сейчас записан
 `master`. Для воспроизводимой сборки укажите в этом файле тег или хеш коммита.
 
-`addr.py` создаёт таблицу из 40 RVA и трёх глобальных адресов. Он также
+`addr.py` создаёт таблицу из 52 RVA и четырёх глобальных адресов. Он также
 переносит в `agent/src/gen/addr.js` отпечаток поддерживаемой сборки игры.
-Сейчас он описывает `pureHD.exe` версии 2.0.2.118 и содержит 29
+Сейчас он описывает `pureHD.exe` версии 2.0.2.118 и содержит 38
 восьмибайтовых сигнатур мест хуков. Загрузчик может подключиться к
 `Sacred.exe` или `Game.exe`. При несовпадении сигнатур агент предупреждает о
 другой сборке, но всё равно устанавливает хуки.

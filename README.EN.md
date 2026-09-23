@@ -120,18 +120,19 @@ event. A `MONITOR` listener sees the final decision and must return `void`. The
 mod linter rejects a `MONITOR` method that returns a mutation, and the loader
 drops such a mutation with one warning.
 
-Seven events can be decided: `Gold`, `Experience`, `Damage`, `Skill`,
-`Attribute`, `CombatArt`, and `Pickup`. Read-only events report something that
+Eight events can be decided: `Gold`, `Experience`, `Damage`, `Skill`,
+`Attribute`, `CombatArt`, `Pickup`, and `Console`, whose veto takes a typed
+console line as a mod's own command. Read-only events report something that
 has already happened:
 
-- the hero and the session: `Hero`, `World`, `Position`, `LevelUp`, `Death`,
-  `NearDeath`;
+- the hero and the session: `Hero`, `World`, `Save`, `Load`, `Position`,
+  `LevelUp`, `Death`, `NearDeath`;
 - what a decision came to: `HealthChanged`, `MaxHealthChanged`,
   `GoldChanged`, `ExperienceChanged`, `SkillChanged`, `AttributeChanged`,
   `SkillPointsChanged`, `AttributePointsChanged`, `CombatArtChanged`;
 - the world: `Region`, `Sector`, `Spawn`, `Despawn`, `MobHit`, `MobDeath`;
-- the journal: `Kill`, `Resurrection`, `Discovery`;
-- items: `Moved`, `Equip`, `Stored`;
+- the journal and quests: `Kill`, `Resurrection`, `Discovery`, `Quest`;
+- items: `Loot`, `Drink`, `Trade`, `Moved`, `Equip`, `Stored`;
 - and `Unknown` for a wire event no type covers yet.
 
 The hook position determines which events are decidable. A veto works only when
@@ -240,10 +241,10 @@ downloads the file from GitHub into that cache. The revision comes from
 for a reproducible build.
 
 Game addresses are generated rather than copied by hand. The current table has
-40 RVAs, three global addresses, and eight-byte signatures for 29 hook sites.
+52 RVAs, four global addresses, and eight-byte signatures for 38 hook sites.
 Every address belongs to `pureHD.exe` 2.0.2.118. The loader can also attach to
 `Sacred.exe` and `Game.exe`, but the agent warns when the instructions at the
-29 hook sites do not match `agent/signatures.json`. It still installs the hooks.
+38 hook sites do not match `agent/signatures.json`. It still installs the hooks.
 
 `hooksafe.py` reads a game binary from
 `D:\SteamLibrary\steamapps\common\Sacred Gold` by default. You can pass either

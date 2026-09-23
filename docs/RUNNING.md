@@ -90,7 +90,7 @@ agent says so on the console and carries on:
 
 ```
 [agent] !! this is not the game build Coderpack's addresses were found in.
-[agent] !! expected pureHD.exe 2.0.2.118, found Sacred.exe. 29 of 29 hook
+[agent] !! expected pureHD.exe 2.0.2.118, found Sacred.exe. 38 of 38 hook
            sites hold different instructions (commitStats, expWrite, ...).
 [agent] !! hooking it anyway, at whatever those addresses now point at. Mods
            may not behave as expected.

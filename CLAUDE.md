@@ -62,7 +62,7 @@ python tests/replay.py
 The commands have distinct jobs:
 
 - `python tools/addr.py` writes `agent/src/gen/addr.js`. The current registry
-  produces 40 RVAs, 3 globals, and 29 site signatures. The generated RVA and
+  produces 52 RVAs, 4 globals, and 38 site signatures. The generated RVA and
   global tables preserve their order from `mappings.json`.
 - `gradlew build` writes artifacts under `api/build/libs`,
   `zygote/build/libs`, and `api-kotlin/build/libs`. It also runs the zygote
@@ -106,13 +106,13 @@ skipped check is not evidence that a hook is safe.
 
 The signature file is generated data. Run
 `python tools/hooksafe.py --signatures [path]` against a real `pureHD.exe` to
-write the first eight bytes from each of the 29 hook sites into
+write the first eight bytes from each of the 38 hook sites into
 `agent/signatures.json`. Never edit those bytes by hand. `tools/addr.py`
 copies them into `gen/addr.js` as `BUILD`, and `10-core.js` compares them with
 the running process during attach.
 
 A mismatch remains a warning. The agent installs the hooks at the current RVAs
-even when the bytes differ. Stock `Sacred.exe` differs at all 29 sites, so its
+even when the bytes differ. Stock `Sacred.exe` differs at all 38 sites, so its
 hooks can land in unrelated functions. Refusing every mismatch would also
 reject an unrecorded build that happens to work.
 
@@ -123,9 +123,9 @@ from Frida would also require parsing the mapped resource directory of an
 unrecognized process. The launcher can safely call `GetFileVersionInfo` on a
 file and warn the player before startup.
 
-Each signature is eight bytes. Five of the 29 signatures are the same generic
+Each signature is eight bytes. Several of the 38 signatures are the same generic
 SEH prologue. One matching prologue proves little. The fingerprint is the full
-set of bytes at 29 specific addresses.
+set of bytes at 38 specific addresses.
 
 ## API and zygote compatibility
 
@@ -205,12 +205,13 @@ and test suites.
 `docs/EVENTS.md` is the contract. This is the shape of its implementation.
 
 The decidable API events are `Gold`, `Experience`, `Damage`, `Skill`,
-`Attribute`, `CombatArt`, and `Pickup`, each a `Decision` and each naming its
+`Attribute`, `CombatArt`, `Pickup`, and `Console`, each a `Decision` and each naming its
 own nested `Mutation` through `Decides`. Their hooks run before the relevant
 game write. The typed read-only events are `LevelUp`, `Hero`, `World`,
 `Position`, `Moved`, `Death`, `NearDeath`, `MobHit`, `MobDeath`, `Equip`,
 `Stored`, the `*Changed` reports of what each decision came to, `Region`,
-`Sector`, `Spawn`, `Despawn`, `Kill`, `Resurrection`, and `Discovery`.
+`Sector`, `Spawn`, `Despawn`, `Kill`, `Resurrection`, `Discovery`, `Save`,
+`Load`, `Quest`, `Loot`, `Drink`, and `Trade`.
 `zygote/src/test/.../RegistryTest` lists every wire name the agent sends and
 fails when one of them would reach a mod as `Unknown`; add a name there with
 its `Registry` entry.
