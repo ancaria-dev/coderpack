@@ -28,7 +28,7 @@ dependencies {
 
     // Read for its nullability, not packed: with these on the compile classpath
     // Kotlin sees the API's @Nonnull and @Nullable instead of platform types,
-    // so `Game.player` below is declared `Player?` because the Java says so
+    // so `entityRegistry.player` reads as `Player?` because the Java says so
     // rather than because somebody remembered.
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
 
