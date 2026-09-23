@@ -62,7 +62,7 @@ python tests/replay.py
 The commands have distinct jobs:
 
 - `python tools/addr.py` writes `agent/src/gen/addr.js`. The current registry
-  produces 26 RVAs, 3 globals, and 20 site signatures. The generated RVA and
+  produces 40 RVAs, 3 globals, and 29 site signatures. The generated RVA and
   global tables preserve their order from `mappings.json`.
 - `gradlew build` writes artifacts under `api/build/libs`,
   `zygote/build/libs`, and `api-kotlin/build/libs`. It also runs the zygote
@@ -106,13 +106,13 @@ skipped check is not evidence that a hook is safe.
 
 The signature file is generated data. Run
 `python tools/hooksafe.py --signatures [path]` against a real `pureHD.exe` to
-write the first eight bytes from each of the 20 hook sites into
+write the first eight bytes from each of the 29 hook sites into
 `agent/signatures.json`. Never edit those bytes by hand. `tools/addr.py`
 copies them into `gen/addr.js` as `BUILD`, and `10-core.js` compares them with
 the running process during attach.
 
 A mismatch remains a warning. The agent installs the hooks at the current RVAs
-even when the bytes differ. Stock `Sacred.exe` differs at all 20 sites, so its
+even when the bytes differ. Stock `Sacred.exe` differs at all 29 sites, so its
 hooks can land in unrelated functions. Refusing every mismatch would also
 reject an unrecorded build that happens to work.
 
@@ -123,9 +123,9 @@ from Frida would also require parsing the mapped resource directory of an
 unrecognized process. The launcher can safely call `GetFileVersionInfo` on a
 file and warn the player before startup.
 
-Each signature is eight bytes. Three of the 20 signatures are the same generic
+Each signature is eight bytes. Five of the 29 signatures are the same generic
 SEH prologue. One matching prologue proves little. The fingerprint is the full
-set of bytes at 20 specific addresses.
+set of bytes at 29 specific addresses.
 
 ## API and zygote compatibility
 
@@ -205,10 +205,25 @@ and test suites.
 `docs/EVENTS.md` is the contract. This is the shape of its implementation.
 
 The decidable API events are `Gold`, `Experience`, `Damage`, `Skill`,
-`Attribute`, and `Pickup`, each a `Decision` and each naming its own nested
-`Mutation` through `Decides`. Their hooks run before the relevant game write.
-The typed read-only events are `LevelUp`, `Hero`, `World`, `Position`, `Moved`,
-`Death`, `NearDeath`, `MobHit`, `MobDeath`, `Equip`, and `Stored`.
+`Attribute`, `CombatArt`, and `Pickup`, each a `Decision` and each naming its
+own nested `Mutation` through `Decides`. Their hooks run before the relevant
+game write. The typed read-only events are `LevelUp`, `Hero`, `World`,
+`Position`, `Moved`, `Death`, `NearDeath`, `MobHit`, `MobDeath`, `Equip`,
+`Stored`, the `*Changed` reports of what each decision came to, `Region`,
+`Sector`, `Spawn`, `Despawn`, `Kill`, `Resurrection`, and `Discovery`.
+`zygote/src/test/.../RegistryTest` lists every wire name the agent sends and
+fails when one of them would reach a mod as `Unknown`; add a name there with
+its `Registry` entry.
+
+The direct side of the API is `Game.player()` and `Game.world()`. The player's
+level, HP, gold, experience and position are cached from events and free to
+read. `attributes()`, `skills()`, `combatArts()`, `stats()` and `sheet()` on
+`Player`, and everything on `Realm`, are one command each and return a
+snapshot built from the flat answer; `RealmLink.unpack` and the snapshot
+constructors are where the packed formats are read, and `SnapshotTest` pins
+them. Each agent command lives in the module that owns its data (`45-world`,
+`47-entities`, `52-journal`, `72-arts`, `90-cmd`), so leaving a module out with
+`--skip` takes its commands with it and the Java side sees an empty answer.
 
 An event is immutable to a mod. What a listener may do is its return type:
 `void` observes, and anything else must be that event's `Mutation`, which

@@ -19,8 +19,8 @@ no rule to remember: it has nothing to return, so it cannot decide anything.
 
 A returning listener must return exactly `<its event>.Mutation`. An event with
 no `Mutation` type cannot be decided, and the compiler says so at the return
-statement rather than the loader saying so at run time. Six events have one:
-`Gold`, `Experience`, `Damage`, `Skill`, `Attribute` and `Pickup`.
+statement rather than the loader saying so at run time. Seven events have one:
+`Gold`, `Experience`, `Damage`, `Skill`, `Attribute`, `CombatArt` and `Pickup`.
 
 The old design had the event itself carry the writes. That is why this one
 does not: a getter read the value as it arrived while a setter wrote into a
@@ -58,7 +58,7 @@ is a compile error everywhere it is not handled yet.
 | `None` | I add nothing. The fold stands as it is. | nothing |
 | `Reset` | Discard every earlier mod's work, back to `initial`. | nothing |
 | `Veto` | This must not happen at all. | `cancel` |
-| `Change` | A value. `Experience.Mutation` and the other five. | `set.<field>` |
+| `Change` | A value. `Experience.Mutation` and the other six. | `set.<field>` |
 | `.last()` | Any of the above, and the chain stops here. | as the mutation |
 
 `Reset` and `Veto` are different and both are needed. `Reset` puts the game's

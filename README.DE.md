@@ -136,21 +136,39 @@ vorherigen Entscheidungen und muss `void` zurückgeben. Der Mod-Linter weist
 eine `MONITOR`-Methode ab, die eine Mutation zurückgibt, und der Loader
 verwirft eine solche Mutation mit einer Warnung.
 
-Sechs Ereignisse lassen sich entscheiden: `Gold`, `Experience`,
-`Damage`, `Skill`, `Attribute` und `Pickup`. Der Rest meldet etwas, das schon
-passiert ist, und ist nur lesbar: `LevelUp`, `Hero`, `World`, `Position`,
-`Moved`, `Death`, `NearDeath`, `MobHit`, `MobDeath`, `Equip`, `Stored`. Was wohin
-gehört, ergibt sich aus der Stelle des Hooks. Ein Veto ist nur möglich, wenn der
-Hook vor dem Schreibzugriff sitzt und Coderpack den betreffenden Wert ändern
-kann. Den vollständigen Vertrag beschreibt [docs/EVENTS.md](docs/EVENTS.md).
+Sieben Ereignisse lassen sich entscheiden: `Gold`, `Experience`,
+`Damage`, `Skill`, `Attribute`, `CombatArt` und `Pickup`. Der Rest meldet
+etwas, das schon passiert ist, und ist nur lesbar:
+
+- Held und Sitzung: `Hero`, `World`, `Position`, `LevelUp`, `Death`,
+  `NearDeath`;
+- was aus einer Entscheidung wurde: `HealthChanged`, `MaxHealthChanged`,
+  `GoldChanged`, `ExperienceChanged`, `SkillChanged`, `AttributeChanged`,
+  `SkillPointsChanged`, `AttributePointsChanged`, `CombatArtChanged`;
+- die Welt: `Region`, `Sector`, `Spawn`, `Despawn`, `MobHit`, `MobDeath`;
+- das Tagebuch: `Kill`, `Resurrection`, `Discovery`;
+- Gegenstände: `Moved`, `Equip`, `Stored`.
+
+Was wohin gehört, ergibt sich aus der Stelle des Hooks. Ein Veto ist nur
+möglich, wenn der Hook vor dem Schreibzugriff sitzt und Coderpack den
+betreffenden Wert ändern kann. Den vollständigen Vertrag beschreibt [docs/EVENTS.md](docs/EVENTS.md).
 
 Für Ereignisse ohne eigenen API-Typ gibt es `Unknown`. Es enthält den Namen aus
 dem Protokoll und die unverarbeiteten Felder, sodass Listener auf `Event` auch
 neue Ereignisse sehen, bevor dafür eine eigene Klasse in der API existiert.
 
-Die Gegenrichtung läuft über `context.game()`. `player()` liefert den Helden mit
-dem zuletzt von Coderpack beobachteten Zustand und den Aktionen `teleport`,
-`gold`, `hp` und `addExp`.
+Die Gegenrichtung läuft über `context.game()`. `player()` liefert den Helden.
+Stufe, Lebenspunkte, Gold, Erfahrung und Position stammen aus dem zuletzt von
+Coderpack beobachteten Zustand und kosten beim Lesen nichts. Dazu kommen die
+Aktionen `teleport`, `gold`, `hp`, `addExp` und `kill`. `attributes()`,
+`skills()`, `combatArts()`, `stats()` (die Statistikseite des Tagebuchs) und
+`sheet()` (Rüstung, Angriffs- und Laufgeschwindigkeit, Widerstände) fragen
+bei jedem Aufruf das Spiel und liefern einen Schnappschuss. Die ersten drei
+sind Sammlungen mit `get` und `forEach`; `attribute`, `skill` und
+`combatArt` schreiben zurück. `world()` zählt die Kreaturen auf, die das Spiel
+hält, alle oder in der Nähe eines Punkts, liest eine über ihre Ref, setzt ihre
+Lebenspunkte oder tötet sie und nennt Region und Sektor, die der Held zuletzt
+betreten hat.
 `uiString`, `typeName`, `typeId` und `types` greifen auf die
 Nachschlagetabellen des Spiels zu. Mit `retype` lässt sich die Typbezeichnung
 eines Gegenstands dauerhaft ändern. Name und Darstellung ändern sich, das
@@ -251,8 +269,8 @@ benachbarte Repositorys bauen.
 Die gewünschte Revision steht in `.mappings-ref`, derzeit `master`. Für einen
 reproduzierbaren Build gehört dort ein Tag oder Commit hinein. Spieladressen
 werden nicht von Hand in den Agent geschrieben. `addr.py` erzeugt daraus
-`agent/src/gen/addr.js` mit 26 RVAs, drei globalen Adressen und den Signaturen
-von 20 Hook-Stellen.
+`agent/src/gen/addr.js` mit 40 RVAs, drei globalen Adressen und den Signaturen
+von 29 Hook-Stellen.
 
 Ohne Argument sucht `hooksafe.py` unter
 `D:\SteamLibrary\steamapps\common\Sacred Gold` nach `pureHD.exe`, `Sacred.exe`
@@ -266,7 +284,7 @@ verweigert unter anderem Stellen, bei denen ein Sprung in den überschriebenen
 Bereich führt, eine Flag-setzende Instruktion von ihrem bedingten Sprung
 getrennt wird oder sich zwei Hook-Bereiche überlappen. Weitere riskante Formen
 werden als Warnung ausgegeben. Mit `--signatures` schreibt das Skript außerdem
-die ersten acht Byte jeder der 20 Hook-Stellen nach
+die ersten acht Byte jeder der 29 Hook-Stellen nach
 `agent/signatures.json`. Der Agent vergleicht diese Signaturen beim Einhängen
 mit dem laufenden Prozess und warnt bei einem abweichenden Build. Die Hooks
 werden trotz der Warnung installiert.

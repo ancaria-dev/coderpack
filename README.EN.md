@@ -120,20 +120,38 @@ event. A `MONITOR` listener sees the final decision and must return `void`. The
 mod linter rejects a `MONITOR` method that returns a mutation, and the loader
 drops such a mutation with one warning.
 
-Six events can be decided: `Gold`, `Experience`, `Damage`, `Skill`,
-`Attribute`, and `Pickup`. Read-only events report something that has
-already happened: `LevelUp`, `Hero`, `World`, `Position`, `Moved`, `Death`,
-`NearDeath`, `MobHit`, `MobDeath`, `Equip`, `Stored`, and `Unknown`. The hook
-position determines which events are decidable. A veto works only when the hook
-runs before the game writes the value. [docs/EVENTS.md](docs/EVENTS.md)
+Seven events can be decided: `Gold`, `Experience`, `Damage`, `Skill`,
+`Attribute`, `CombatArt`, and `Pickup`. Read-only events report something that
+has already happened:
+
+- the hero and the session: `Hero`, `World`, `Position`, `LevelUp`, `Death`,
+  `NearDeath`;
+- what a decision came to: `HealthChanged`, `MaxHealthChanged`,
+  `GoldChanged`, `ExperienceChanged`, `SkillChanged`, `AttributeChanged`,
+  `SkillPointsChanged`, `AttributePointsChanged`, `CombatArtChanged`;
+- the world: `Region`, `Sector`, `Spawn`, `Despawn`, `MobHit`, `MobDeath`;
+- the journal: `Kill`, `Resurrection`, `Discovery`;
+- items: `Moved`, `Equip`, `Stored`;
+- and `Unknown` for a wire event no type covers yet.
+
+The hook position determines which events are decidable. A veto works only when
+the hook runs before the game writes the value. [docs/EVENTS.md](docs/EVENTS.md)
 describes the contract in full.
 
-Use `context.game()` for direct operations. `player()` returns the hero handle,
-backed by the latest state Coderpack observed, and provides `teleport`, `gold`,
-`hp`, and `addExp`. The game interface also provides `uiString`, `typeName`,
-`typeId`, `types`, `retype`, and `reshape`. `retype` permanently changes an
-item’s type label and appearance, but keeps its original behavior and
-modifiers. `reshape` makes an item a copy of another, modifiers included.
+Use `context.game()` for direct operations. `player()` returns the hero handle.
+Its level, HP, gold, experience and position come from the latest state
+Coderpack observed and cost nothing to read, and it provides `teleport`, `gold`,
+`hp`, `addExp` and `kill`. `attributes()`, `skills()`, `combatArts()`,
+`stats()` (the journal's Statistics page) and `sheet()` (armour, attack and
+movement speed, resistances) ask the game on every call and return a
+snapshot; the first three are collections with `get` and `forEach`, and
+`attribute`, `skill` and `combatArt` write back. `world()` lists the
+creatures the game holds, near a point or all of them, reads one by its ref,
+sets its HP or kills it, and says which region and sector the hero last
+entered. The game interface also provides `uiString`, `typeName`, `typeId`,
+`types`, `retype`, and `reshape`. `retype` permanently changes an item’s type
+label and appearance, but keeps its original behavior and modifiers.
+`reshape` makes an item a copy of another, modifiers included.
 Commands wait up to two seconds for an agent reply.
 
 Listeners on a decidable event run while the game thread is stopped, so keep
@@ -222,10 +240,10 @@ downloads the file from GitHub into that cache. The revision comes from
 for a reproducible build.
 
 Game addresses are generated rather than copied by hand. The current table has
-26 RVAs, three global addresses, and eight-byte signatures for 20 hook sites.
+40 RVAs, three global addresses, and eight-byte signatures for 29 hook sites.
 Every address belongs to `pureHD.exe` 2.0.2.118. The loader can also attach to
 `Sacred.exe` and `Game.exe`, but the agent warns when the instructions at the
-20 hook sites do not match `agent/signatures.json`. It still installs the hooks.
+29 hook sites do not match `agent/signatures.json`. It still installs the hooks.
 
 `hooksafe.py` reads a game binary from
 `D:\SteamLibrary\steamapps\common\Sacred Gold` by default. You can pass either
