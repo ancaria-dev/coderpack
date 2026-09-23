@@ -198,7 +198,7 @@ Coderpack, и читаются бесплатно. Операции героя: 
 
 `dev.ancaria.coderpack:api-kotlin` — это тот же API, записанный синтаксисом
 Kotlin. Новых возможностей он не добавляет: каждое объявление вызывает метод из
-`api`, и почти все они inline. Загрузчик его моду не выдаёт, поэтому мод
+`api`, а помощники регистрации inline. Загрузчик его моду не выдаёт, поэтому мод
 упаковывает модуль внутрь своего jar, рядом со стандартной библиотекой, которую
 и так несёт.
 
@@ -211,34 +211,32 @@ dependencies {
 ```kotlin
 package com.example
 
-import dev.ancaria.coderpack.api.Context
+import dev.ancaria.coderpack.api.SacredMod
 import dev.ancaria.coderpack.api.event.Gold
-import dev.ancaria.coderpack.ktx.SacredMod
 import dev.ancaria.coderpack.ktx.mutate
 import dev.ancaria.coderpack.ktx.on
-import dev.ancaria.coderpack.ktx.spending
-import dev.ancaria.coderpack.ktx.value
 
 class DoubleGold : SacredMod() {
 
-    override fun Context.load() {
-        on<Gold> { if (!it.spending) mutate { Gold.Mutation.change(it.value * 2) } }
+    override fun onLoad() {
+        context.on<Gold> { if (!it.isSpending) mutate { Gold.Mutation.change(it.value * 2) } }
     }
 }
 ```
 
-Работают здесь три вещи. `SacredMod` — абстрактный класс из `…ktx`: он хранит
-контекст и передаёт его в `load` как receiver, поэтому `on` и `log` пишутся без
-префикса. `on<Gold>` принимает событие параметром типа, а не литералом класса, а
-блок `events { }` собирает несколько таких вызовов вместе. А `mutate { }` —
-это то, как тело слушателя принимает решение. Он существует только для
-событий, которые можно решать, поэтому `on<Death> { mutate { ... } }` не
-компилируется. Все свойства здесь — `val` только для чтения, `it.value` в их
-числе.
+Работают здесь три вещи. `SacredMod` — тот же Java-класс, от которого
+наследуется мод на Java, а его `getContext()` Kotlin читает как `context`, в
+`onLoad` и в любом другом месте класса. `on<Gold>` принимает событие параметром
+типа, а не литералом класса, а блок `context.events { }` собирает несколько
+таких вызовов вместе. А `mutate { }` — это то, как тело слушателя принимает
+решение. Он существует только для событий, которые можно решать, поэтому
+`on<Death> { mutate { ... } }` не компилируется. Все чтения в API — геттеры,
+поэтому Kotlin и так видит `it.value` и `it.isSpending` как свойства, и
+собственных свойств модуль не добавляет.
 
-`@Subscribe` работает ровно так же, как из Java, и реализовать
-`dev.ancaria.coderpack.api.SacredMod` напрямую по-прежнему можно. Ничего из
-этого не обязательно.
+`@Subscribe` работает ровно так же, как из Java, и вызывать
+`context.registry.eventRegistry` напрямую по-прежнему можно. Ничего из этого не
+обязательно.
 
 ## Сборка coderpack
 

@@ -193,8 +193,8 @@ they are the only ones that say which mod spoke.
 ### The same mod in Kotlin
 
 `dev.ancaria.coderpack:api-kotlin` is the same API with Kotlin syntax on top. It
-adds no capability: every declaration forwards to a method on `api`, and almost
-all of them are inline. The loader does not hand it to a mod, so a mod that
+adds no capability: every declaration forwards to a method on `api`, and the
+registration helpers are inline. The loader does not hand it to a mod, so a mod that
 wants it packs it, next to the standard library it already carries.
 
 ```kotlin
@@ -206,32 +206,30 @@ dependencies {
 ```kotlin
 package com.example
 
-import dev.ancaria.coderpack.api.Context
+import dev.ancaria.coderpack.api.SacredMod
 import dev.ancaria.coderpack.api.event.Gold
-import dev.ancaria.coderpack.ktx.SacredMod
 import dev.ancaria.coderpack.ktx.mutate
 import dev.ancaria.coderpack.ktx.on
-import dev.ancaria.coderpack.ktx.spending
-import dev.ancaria.coderpack.ktx.value
 
 class DoubleGold : SacredMod() {
 
-    override fun Context.load() {
-        on<Gold> { if (!it.spending) mutate { Gold.Mutation.change(it.value * 2) } }
+    override fun onLoad() {
+        context.on<Gold> { if (!it.isSpending) mutate { Gold.Mutation.change(it.value * 2) } }
     }
 }
 ```
 
-Three things are doing the work there. `SacredMod` is the abstract class from
-`…ktx`, which keeps the context and hands it to `load` as a receiver, so `on`
-and `log` read as bare calls. `on<Gold>` takes the event as a type argument
-instead of a class literal, and `events { }` groups several of those into one
-block. And `mutate { }` is how a body decides. It exists only for an event that
-can be decided, so `on<Death> { mutate { ... } }` does not compile. Every
-property is a read-only `val`, `it.value` among them.
+Three things are doing the work there. `SacredMod` is the same Java class a
+Java mod extends, and Kotlin reads its `getContext()` as `context`, in `onLoad`
+and anywhere else in the class. `on<Gold>` takes the event as a type argument
+instead of a class literal, and `context.events { }` groups several of those
+into one block. And `mutate { }` is how a body decides. It exists only for an
+event that can be decided, so `on<Death> { mutate { ... } }` does not compile.
+Every reader in the API is a getter, so Kotlin already sees `it.value` and
+`it.isSpending` as properties and the module adds none of its own.
 
-`@Subscribe` works exactly as it does from Java, and so does implementing
-`dev.ancaria.coderpack.api.SacredMod` directly. None of this is required.
+`@Subscribe` works exactly as it does from Java, and so does calling
+`context.registry.eventRegistry` directly. None of this is required.
 
 ## Building Coderpack
 

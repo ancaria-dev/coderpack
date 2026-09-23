@@ -219,8 +219,8 @@ installierten Mods sagen nur sie, welcher Mod gesprochen hat.
 
 `dev.ancaria.coderpack:api-kotlin` ist dieselbe API in Kotlin-Syntax. Sie kann
 nichts, was die Java-API nicht kann: jede Deklaration ruft eine Methode aus
-`api` auf, und fast alle sind inline. Der Loader reicht dieses Modul nicht an
-einen Mod weiter, also packt der Mod es selbst ein, neben die
+`api` auf, und die Registrierungshelfer sind inline. Der Loader reicht dieses
+Modul nicht an einen Mod weiter, also packt der Mod es selbst ein, neben die
 Standardbibliothek, die er ohnehin trägt.
 
 ```kotlin
@@ -232,34 +232,32 @@ dependencies {
 ```kotlin
 package com.example
 
-import dev.ancaria.coderpack.api.Context
+import dev.ancaria.coderpack.api.SacredMod
 import dev.ancaria.coderpack.api.event.Gold
-import dev.ancaria.coderpack.ktx.SacredMod
 import dev.ancaria.coderpack.ktx.mutate
 import dev.ancaria.coderpack.ktx.on
-import dev.ancaria.coderpack.ktx.spending
-import dev.ancaria.coderpack.ktx.value
 
 class DoubleGold : SacredMod() {
 
-    override fun Context.load() {
-        on<Gold> { if (!it.spending) mutate { Gold.Mutation.change(it.value * 2) } }
+    override fun onLoad() {
+        context.on<Gold> { if (!it.isSpending) mutate { Gold.Mutation.change(it.value * 2) } }
     }
 }
 ```
 
-Drei Dinge tun dort die Arbeit. `SacredMod` ist die abstrakte Klasse aus
-`…ktx`; sie hält den Context und übergibt ihn `load` als Receiver, sodass `on`
-und `log` ohne Präfix stehen. `on<Gold>` nimmt das Ereignis als Typargument
-statt als Klassenliteral, und `events { }` fasst mehrere solcher Aufrufe zu
-einem Block zusammen. Und mit `mutate { }` entscheidet der Rumpf. Es existiert
-nur für Ereignisse, die sich entscheiden lassen, daher kompiliert
-`on<Death> { mutate { ... } }` nicht. Jede Eigenschaft ist ein nur lesbares
-`val`, `it.value` darunter.
+Drei Dinge tun dort die Arbeit. `SacredMod` ist dieselbe Java-Klasse, von der
+auch ein Java-Mod erbt, und Kotlin liest ihr `getContext()` als `context`, in
+`onLoad` und überall sonst in der Klasse. `on<Gold>` nimmt das Ereignis als
+Typargument statt als Klassenliteral, und `context.events { }` fasst mehrere
+solcher Aufrufe zu einem Block zusammen. Und mit `mutate { }` entscheidet der
+Rumpf. Es existiert nur für Ereignisse, die sich entscheiden lassen, daher
+kompiliert `on<Death> { mutate { ... } }` nicht. Jeder Leser der API ist ein
+Getter, also sieht Kotlin `it.value` und `it.isSpending` schon als
+Eigenschaften, und das Modul fügt keine eigenen hinzu.
 
 `@Subscribe` funktioniert genau wie aus Java, und
-`dev.ancaria.coderpack.api.SacredMod` direkt zu implementieren ebenfalls.
-Nichts davon ist Pflicht.
+`context.registry.eventRegistry` direkt aufzurufen ebenfalls. Nichts davon ist
+Pflicht.
 
 ## Coderpack bauen
 
