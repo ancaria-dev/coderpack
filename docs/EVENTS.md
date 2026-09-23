@@ -1,7 +1,7 @@
 # Events
 
 This is the contract mods are written against. `api` implements it. The fold
-that makes `value()` mean what it says lives in the bus in `zygote`.
+that makes `getValue()` mean what it says lives in the bus in `zygote`.
 `api-kotlin`, the mod linter in `build` and the four mods follow it.
 
 ## Two kinds of listener
@@ -10,7 +10,7 @@ A listener is a method taking one event. What it returns decides what it may
 do, and nothing else does:
 
 ```java
-@Subscribe public void onXp(Experience e)                { context.log("xp " + e.gain()); }
+@Subscribe public void onXp(Experience e)                { getContext().log("xp " + e.getGain()); }
 @Subscribe public Experience.Mutation onXp(Experience e) { return ...; }
 ```
 
@@ -44,19 +44,19 @@ and nothing in the loader could see the collision.
 
 The event is immutable. Two readings of the number under decision:
 
-    initial()   what the game sent, before any mod touched it
-    value()     the same number with every earlier listener's work folded in
+    getInitial()   what the game sent, before any mod touched it
+    getValue()     the same number with every earlier listener's work folded in
 
-`value()` is the one to read. A mod that doubles experience writes
-`e.value() * 2`, and two such mods compose into four times without either
-knowing the other exists. `initial()` is for a listener that needs to report
+`getValue()` is the one to read. A mod that doubles experience writes
+`e.getValue() * 2`, and two such mods compose into four times without either
+knowing the other exists. `getInitial()` is for a listener that needs to report
 or reason about what the game itself intended.
 
 Both live on the events that decide a number, not on `Event`. `Pickup` decides
 which object is picked up and what that object becomes, neither of which is a
-quantity, so it carries neither and answers `ref()` and `edited()` instead.
+quantity, so it carries neither and answers `getRef()` and `isEdited()` instead.
 
-The event is immutable to a mod, not to the loader: `value()` reads a field
+The event is immutable to a mod, not to the loader: `getValue()` reads a field
 only the bus writes, between listeners. One object per frame, no copying, and
 no way for a mod to write into it.
 
@@ -91,7 +91,7 @@ priority and then by mod load order — alphabetical by jar filename. Reach for
 
 Dispatch order is unchanged: `FIRST`, `NORMAL`, `LAST`, `MONITOR`, and inside
 one step the order listeners registered. The bus folds each returned mutation
-before calling the next listener, which is what makes `value()` mean what it
+before calling the next listener, which is what makes `getValue()` mean what it
 says.
 
 Three of the cases throw away work another mod did. Each one is logged every
@@ -114,12 +114,14 @@ hear about the veto too.
 
 ## Registering
 
-Java has two methods, because one overloaded name cannot carry both lambda
-shapes without becoming ambiguous:
+Java has two methods on the `EventRegistry` a mod reaches through
+`getContext().getRegistry().getEventRegistry()`, because one overloaded name
+cannot carry both lambda shapes without becoming ambiguous:
 
 ```java
-events.on(Experience.class, e -> context.log("xp " + e.gain()));
-events.decide(Experience.class, e -> Experience.Mutation.change(e.value() * 2));
+EventRegistry events = getContext().getRegistry().getEventRegistry();
+events.on(Experience.class, e -> getContext().log("xp " + e.getGain()));
+events.decide(Experience.class, e -> Experience.Mutation.change(e.getValue() * 2));
 ```
 
 `decide` is closed statically: it takes an `E extends Decides<M>` and returns
@@ -133,6 +135,9 @@ on<Experience> { log("xp ${it.gain}") }
 on<Experience> { mutate { Experience.Mutation.change(it.value * 2) } }
 on<Death>      { mutate { ... } }              // does not compile
 ```
+
+Kotlin reads every getter as a property, which is why the API names them
+`getX()` and `isX()`: `it.gain` above is `getGain()`.
 
 `mutate` is an extension that exists only when `E : Decides<M>`, so an event
 with nothing to decide has no such function. It has to be shaped this way.
@@ -153,7 +158,7 @@ string keys stay at the edge where the wire is.
 
 ## Open questions
 
-- `Skill.initial()` is a fiction at both ends of the range, and this is
+- `Skill.getInitial()` is a fiction at both ends of the range, and this is
   settled rather than suspected: the disassembly puts the game's clamp-to-255
   and clamp-to-0 branches before the hook, each storing the byte and jumping
   straight to it, so the agent's `stored - delta` is wrong whenever a clamp
