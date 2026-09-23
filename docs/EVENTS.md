@@ -25,7 +25,7 @@ and `Console`. `Console` has no `Change`: a veto is its whole answer, and it
 means the line was a mod's own command.
 
 A mod that takes a line can answer in the console with
-`getGame().getConsole().print(text)`. That is the agent command
+`getContext().getGame().getConsole().print(text)`. That is the agent command
 `console.print` with one field, `text`, and the agent shows it the way the
 game shows its HELP list, through the game's own console event. It is one
 line: control characters become spaces, anything past 255 characters is cut,
