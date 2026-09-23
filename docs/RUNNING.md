@@ -54,9 +54,14 @@ the game's, not Coderpack's. `--dist`, `--mods` and `--java` override the rest.
 
 Everything appears in the host's console window: `[host]` is the host,
 `[agent]` is the injected JavaScript, `[coderpack]` is the loader, and
-`[coderpack] <mod id>:` is a mod's own `context.log`. A mod that prints with
-`System.out` shows up here too and corrupts nothing: the protocol has pipes of
-its own. Prefer `context.log` anyway, because it says which mod spoke.
+`[<time>] [<mod id>]:` is a mod's own `getContext().print`. A mod that prints
+with `System.out` shows up here too and corrupts nothing: the protocol has
+pipes of its own. Prefer `print` anyway, because it says which mod spoke.
+
+`getContext().log` does not go to the console. It appends the same kind of
+line to `<Sacred Gold>/logs/mods.log`, one file for every mod, through one
+writer thread that never makes the caller wait. That file is what to read
+after a session; the console is for watching one.
 
 ## Restart the game after changing a hook
 
