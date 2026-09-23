@@ -1,10 +1,12 @@
 package dev.ancaria.coderpack.ktx
 
 import dev.ancaria.coderpack.api.entity.Item
+import dev.ancaria.coderpack.api.event.Drink
 import dev.ancaria.coderpack.api.event.Equip
 import dev.ancaria.coderpack.api.event.Moved
 import dev.ancaria.coderpack.api.event.Pickup
 import dev.ancaria.coderpack.api.event.Stored
+import dev.ancaria.coderpack.api.event.Trade
 
 // Items, and the events that carry one.
 //
@@ -79,3 +81,14 @@ public inline val Item.known: Boolean get() = known()
  * has at zero are different facts, and the map already tells them apart.
  */
 public operator fun Item.get(modifier: Int): Int? = modifiers()[modifier]
+
+public inline val Drink.typeName: String? get() = typeName()
+
+public inline val Drink.player: Boolean get() = player()
+
+/** True for a purchase, false for a sale. */
+public inline val Trade.bought: Boolean get() = bought()
+
+public inline val Trade.price: Long get() = price()
+
+public inline val Trade.typeName: String? get() = typeName()

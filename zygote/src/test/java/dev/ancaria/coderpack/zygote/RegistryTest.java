@@ -50,7 +50,13 @@ class RegistryTest {
                 "session.saved",
                 "session.load_start",
                 "session.load_done",
-                "console.line");
+                "console.line",
+                "quest.start",
+                "quest.end",
+                "loot.drop",
+                "item.drink",
+                "trade.buy",
+                "trade.sell");
         for (String name : sent) {
             assertFalse(build(name, Map.of()) instanceof Unknown, name);
         }

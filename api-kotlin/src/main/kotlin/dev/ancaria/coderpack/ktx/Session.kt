@@ -8,7 +8,9 @@ import dev.ancaria.coderpack.api.event.Discovery
 import dev.ancaria.coderpack.api.event.Hero
 import dev.ancaria.coderpack.api.event.LevelUp
 import dev.ancaria.coderpack.api.event.Load
+import dev.ancaria.coderpack.api.event.Loot
 import dev.ancaria.coderpack.api.event.Position
+import dev.ancaria.coderpack.api.event.Quest
 import dev.ancaria.coderpack.api.event.Region
 import dev.ancaria.coderpack.api.event.Save
 import dev.ancaria.coderpack.api.event.Sector
@@ -95,6 +97,15 @@ public inline val Load.path: String? get() = path()
 
 /** The whole console line, as typed. Veto it to take it as a mod command. */
 public inline val Console.text: String get() = text()
+
+/** The quest number, or -1 when the script named it through a variable. */
+public inline val Quest.number: Int get() = number()
+
+public inline val Quest.started: Boolean get() = started()
+
+public inline val Loot.chest: Boolean get() = chest()
+
+public inline val Loot.items: List<Loot.Drop> get() = items()
 
 /** The wire name of an event no SDK type covers yet. */
 public inline val Unknown.name: String get() = name()

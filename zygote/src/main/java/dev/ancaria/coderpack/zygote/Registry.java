@@ -10,6 +10,7 @@ import dev.ancaria.coderpack.api.event.Damage;
 import dev.ancaria.coderpack.api.event.Death;
 import dev.ancaria.coderpack.api.event.Despawn;
 import dev.ancaria.coderpack.api.event.Discovery;
+import dev.ancaria.coderpack.api.event.Drink;
 import dev.ancaria.coderpack.api.event.Equip;
 import dev.ancaria.coderpack.api.event.Event;
 import dev.ancaria.coderpack.api.event.Experience;
@@ -21,6 +22,7 @@ import dev.ancaria.coderpack.api.event.Hero;
 import dev.ancaria.coderpack.api.event.Kill;
 import dev.ancaria.coderpack.api.event.LevelUp;
 import dev.ancaria.coderpack.api.event.Load;
+import dev.ancaria.coderpack.api.event.Loot;
 import dev.ancaria.coderpack.api.event.MaxHealthChanged;
 import dev.ancaria.coderpack.api.event.MobDeath;
 import dev.ancaria.coderpack.api.event.MobHit;
@@ -28,6 +30,7 @@ import dev.ancaria.coderpack.api.event.Moved;
 import dev.ancaria.coderpack.api.event.NearDeath;
 import dev.ancaria.coderpack.api.event.Pickup;
 import dev.ancaria.coderpack.api.event.Position;
+import dev.ancaria.coderpack.api.event.Quest;
 import dev.ancaria.coderpack.api.event.Region;
 import dev.ancaria.coderpack.api.event.Resurrection;
 import dev.ancaria.coderpack.api.event.Save;
@@ -37,6 +40,7 @@ import dev.ancaria.coderpack.api.event.SkillChanged;
 import dev.ancaria.coderpack.api.event.SkillPointsChanged;
 import dev.ancaria.coderpack.api.event.Spawn;
 import dev.ancaria.coderpack.api.event.Stored;
+import dev.ancaria.coderpack.api.event.Trade;
 import dev.ancaria.coderpack.api.event.Unknown;
 import dev.ancaria.coderpack.api.event.World;
 
@@ -94,6 +98,12 @@ final class Registry {
             Map.entry("session.load_start", f -> new Load(false, f)),
             Map.entry("session.load_done", f -> new Load(true, f)),
             Map.entry("console.line", Console::new),
+            Map.entry("quest.start", f -> new Quest(true, f)),
+            Map.entry("quest.end", f -> new Quest(false, f)),
+            Map.entry("loot.drop", Loot::new),
+            Map.entry("item.drink", Drink::new),
+            Map.entry("trade.buy", f -> new Trade(true, f)),
+            Map.entry("trade.sell", f -> new Trade(false, f)),
             Map.entry("session.detached", f -> new World(World.Phase.DETACHED, f)));
 
     private Registry() {
