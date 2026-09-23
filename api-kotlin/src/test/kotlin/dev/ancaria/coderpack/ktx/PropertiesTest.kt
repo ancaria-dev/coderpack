@@ -1,5 +1,6 @@
 package dev.ancaria.coderpack.ktx
 
+import dev.ancaria.coderpack.api.entity.Creature
 import dev.ancaria.coderpack.api.entity.Item
 import dev.ancaria.coderpack.api.event.Damage
 import dev.ancaria.coderpack.api.event.Fold
@@ -32,7 +33,7 @@ class PropertiesTest {
         assertEquals(10L, gold.initial)
         assertEquals(mapOf("delta" to "15"), Fold.verdict(gold))
         assertEquals(50L, gold.current)
-        assertEquals(false, gold.spending)
+        assertEquals(false, gold.isSpending)
     }
 
     @Test
@@ -53,11 +54,11 @@ class PropertiesTest {
 
         Fold.apply(gold, Gold.Mutation.change(99))
         Fold.apply(gold, Gold.Mutation.veto())
-        assertEquals(true, gold.vetoed)
+        assertEquals(true, gold.isVetoed)
         assertEquals(mapOf(), Fold.verdict(gold))
 
         Fold.apply(gold, Gold.Mutation.reset())
-        assertEquals(false, gold.vetoed)
+        assertEquals(false, gold.isVetoed)
         assertEquals(10L, gold.value)
     }
 
@@ -81,9 +82,16 @@ class PropertiesTest {
 
     @Test
     fun `an unknown type name is null rather than the id zero`() {
-        val game = FakeGame()
+        val types = FakeGame().typeRegistry
 
-        assertEquals(5171, game.typeIdOrNull("TYPE_OBJECT_RING"))
-        assertNull(game.typeIdOrNull("TYPE_OBJECT_NOTHING"))
+        assertEquals(5171, types.typeIdOrNull("TYPE_OBJECT_RING"))
+        assertNull(types.typeIdOrNull("TYPE_OBJECT_NOTHING"))
+    }
+
+    @Test
+    fun `a creature's position keeps x and y in their places`() {
+        val creature = Creature(mapOf("x" to "120", "y" to "-7"))
+
+        assertEquals(Pos(120, -7), creature.position)
     }
 }

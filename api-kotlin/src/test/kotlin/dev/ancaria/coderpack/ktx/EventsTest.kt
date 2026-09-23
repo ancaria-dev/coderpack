@@ -2,8 +2,10 @@ package dev.ancaria.coderpack.ktx
 
 import dev.ancaria.coderpack.api.Context
 import dev.ancaria.coderpack.api.Priority
+import dev.ancaria.coderpack.api.SacredMod
 import dev.ancaria.coderpack.api.event.Gold
 import dev.ancaria.coderpack.api.event.Hero
+import dev.ancaria.coderpack.api.internal.ModBinding
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -77,10 +79,12 @@ class EventsTest {
         val bus = Bus()
         val both = bus.on<Hero> { } + bus.on<Gold> { }
         assertEquals(2, bus.live.size)
+        assertEquals(listOf(Hero::class.java, Gold::class.java), both.map { it.eventType })
 
         both.unregister()
 
         assertTrue(bus.live.isEmpty())
+        assertTrue(both.none { it.isRegistered })
     }
 
     @Test
@@ -92,25 +96,42 @@ class EventsTest {
     }
 
     @Test
-    fun `the mod base class keeps the context and runs load against it`() {
-        val context = FakeContext()
-        val mod = Probe()
+    fun `on straight off the context lands on its event registry`() {
+        val bus = Bus()
+        FakeContext(bus).on<Gold>(Priority.FIRST) { }
 
-        mod.onLoad(context)
+        assertEquals(Gold::class.java, bus.type)
+        assertEquals(Priority.FIRST, bus.priority)
+        assertEquals(1, bus.live.size)
+    }
 
+    @Test
+    fun `a Kotlin mod extends the Java class and registers from onLoad`() {
+        val bus = Bus()
+        val context = FakeContext(bus)
+        var claimed: SacredMod? = null
+        val mod = ModBinding.create(Probe::class.java, context) { claimed = it }
+
+        mod.onLoad()
+        bus.fire(hero(5))
+
+        assertSame(mod, claimed)
         assertSame(context, mod.context)
-        assertEquals("demo-mod", mod.seen)
-        assertEquals(listOf("loaded"), context.logged)
+        assertSame(context, mod.early)
+        assertEquals(listOf("loaded", "hero 5"), context.logged)
     }
 
     /** A mod written the way the Kotlin template writes one. */
-    private class Probe : SacredMod() {
+    class Probe : SacredMod() {
 
-        var seen: String? = null
+        /** Read in a field initialiser, which is the point of the binding. */
+        val early: Context = context
 
-        override fun Context.load() {
-            seen = id()
-            log("loaded")
+        override fun onLoad() {
+            context.events {
+                on<Hero> { context.log("hero ${it.level}") }
+            }
+            context.log("loaded")
         }
     }
 
