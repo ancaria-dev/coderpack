@@ -1,7 +1,7 @@
 package dev.ancaria.coderpack.ktx
 
 import dev.ancaria.coderpack.api.Context
-import dev.ancaria.coderpack.api.Events
+import dev.ancaria.coderpack.api.EventRegistry
 import dev.ancaria.coderpack.api.Handle
 import dev.ancaria.coderpack.api.Priority
 import dev.ancaria.coderpack.api.event.Event
@@ -20,11 +20,12 @@ import java.util.function.Consumer
  * }
  * ```
  *
- * [Events] is the receiver inside, so a mod that registers more than one
- * listener says `events` once instead of on every line.
+ * [EventRegistry] is the receiver inside, so a mod that registers more than one
+ * listener says `events` once instead of `registry.eventRegistry` on every
+ * line.
  */
-public inline fun Context.events(block: Events.() -> Unit) {
-    events().block()
+public inline fun Context.events(block: EventRegistry.() -> Unit) {
+    registry.eventRegistry.block()
 }
 
 /**
@@ -35,7 +36,7 @@ public inline fun Context.events(block: Events.() -> Unit) {
  * a quest. Written by hand this is a handle a listener has to see before
  * anything can hand it one, and the gap between those two fires twice.
  */
-public inline fun <reified E : Event> Events.once(
+public inline fun <reified E : Event> EventRegistry.once(
     priority: Priority = Priority.NORMAL,
     ignoreVetoed: Boolean = false,
     noinline listener: (E) -> Unit,
@@ -58,7 +59,7 @@ public inline fun <reified E : Event> Events.once(
  * the bus.
  */
 @PublishedApi
-internal fun <E : Event> Events.once(
+internal fun <E : Event> EventRegistry.once(
     type: Class<E>,
     priority: Priority,
     ignoreVetoed: Boolean,
@@ -82,16 +83,13 @@ internal fun <E : Event> Events.once(
 }
 
 /**
- * One handle for two, so a pair registered together comes off together:
+ * Two handles as one list, so a pair registered together comes off together:
  * `(on<Hero> { } + on<Death> { }).unregister()`.
+ *
+ * A list rather than a merged [Handle], because a handle now says which mod,
+ * event and priority it belongs to, and two of them have two answers.
  */
-public operator fun Handle.plus(other: Handle): Handle {
-    val first = this
-    return Handle {
-        first.unregister()
-        other.unregister()
-    }
-}
+public operator fun Handle.plus(other: Handle): List<Handle> = listOf(this, other)
 
 /** Takes every listener in the collection off the bus. */
 public fun Iterable<Handle>.unregister(): Unit = forEach(Handle::unregister)

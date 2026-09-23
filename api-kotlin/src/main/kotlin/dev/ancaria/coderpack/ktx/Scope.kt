@@ -1,6 +1,7 @@
 package dev.ancaria.coderpack.ktx
 
-import dev.ancaria.coderpack.api.Events
+import dev.ancaria.coderpack.api.Context
+import dev.ancaria.coderpack.api.EventRegistry
 import dev.ancaria.coderpack.api.Handle
 import dev.ancaria.coderpack.api.Priority
 import dev.ancaria.coderpack.api.event.Decides
@@ -52,13 +53,15 @@ public fun <E, M : EventMutation> On<E>.mutate(build: () -> M)
  * `Class` the Java call needs:
  *
  * ```
- * events.on<Death> { context.log("blow ${it.blow}") }
- * events.on<Damage>(Priority.LAST) { mutate { Damage.Mutation.change(it.maxHp) } }
+ * context.events {
+ *     on<Death> { context.log("blow ${it.blow}") }
+ *     on<Damage>(Priority.LAST) { mutate { Damage.Mutation.change(it.maxHp) } }
+ * }
  * ```
  *
  * Same bus, same order, same fold.
  */
-public inline fun <reified E : Event> Events.on(
+public inline fun <reified E : Event> EventRegistry.on(
     priority: Priority = Priority.NORMAL,
     ignoreVetoed: Boolean = false,
     crossinline body: On<E>.(E) -> Unit,
@@ -67,11 +70,11 @@ public inline fun <reified E : Event> Events.on(
 }
 
 /** [on], straight off the context, for a mod that only registers a listener or two. */
-public inline fun <reified E : Event> dev.ancaria.coderpack.api.Context.on(
+public inline fun <reified E : Event> Context.on(
     priority: Priority = Priority.NORMAL,
     ignoreVetoed: Boolean = false,
     crossinline body: On<E>.(E) -> Unit,
-): Handle = events().on(priority, ignoreVetoed, body)
+): Handle = registry.eventRegistry.on(priority, ignoreVetoed, body)
 
 /**
  * The half of [on] that is a cast rather than sugar, kept out of the inline
@@ -92,7 +95,7 @@ public inline fun <reified E : Event> dev.ancaria.coderpack.api.Context.on(
  */
 @Suppress("UNCHECKED_CAST")
 @PublishedApi
-internal fun <E : Event> Events.scoped(
+internal fun <E : Event> EventRegistry.scoped(
     type: Class<E>,
     priority: Priority,
     ignoreVetoed: Boolean,
@@ -110,7 +113,7 @@ internal fun <E : Event> Events.scoped(
     }
 
 /** The typed call the cast above lands on. */
-private fun <M : EventMutation, D> Events.decideAs(
+private fun <M : EventMutation, D> EventRegistry.decideAs(
     type: Class<D>,
     priority: Priority,
     ignoreVetoed: Boolean,
