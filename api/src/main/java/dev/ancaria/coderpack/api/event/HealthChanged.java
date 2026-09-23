@@ -19,26 +19,26 @@ public final class HealthChanged extends Event {
 
     /** "damage", "heal", "lethal", "survive" or "clamp". */
     @Nullable
-    public String kind() {
-        return text("kind");
+    public String getKind() {
+        return getText("kind");
     }
 
     /** HP before the write. */
-    public long previous() {
-        return num("prev");
+    public long getPrevious() {
+        return getNum("prev");
     }
 
     /** HP as stored. */
-    public long hp() {
-        return num("next");
+    public long getHp() {
+        return getNum("next");
     }
 
-    public long maxHp() {
-        return num("max");
+    public long getMaxHp() {
+        return getNum("max");
     }
 
     /** The blow the game computed, before any mod changed the outcome. */
-    public long damage() {
-        return num("damage");
+    public long getDamage() {
+        return getNum("damage");
     }
 }

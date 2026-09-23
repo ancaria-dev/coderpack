@@ -15,13 +15,13 @@ public final class Experience extends Amount implements Decides<Experience.Mutat
         super(fields, "next");
     }
 
-    public long gain() {
-        return num("gain");
+    public long getGain() {
+        return getNum("gain");
     }
 
     /** The total before this grant. */
-    public long exp() {
-        return num("prev");
+    public long getExp() {
+        return getNum("prev");
     }
 
     /** What an {@code Experience} listener returns. */
@@ -63,7 +63,7 @@ public final class Experience extends Amount implements Decides<Experience.Mutat
         @Override
         @Nonnull
         public Mutation last() {
-            return new Mutation(kind(), true, value());
+            return new Mutation(getKind(), true, getValue());
         }
     }
 }

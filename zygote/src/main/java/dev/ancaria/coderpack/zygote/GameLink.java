@@ -133,11 +133,11 @@ final class GameLink implements Game {
         // so what was read off a Pickup is what is written back here.
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("ref", Integer.toString(ref));
-        fields.put("type", Integer.toString(template.typeId()));
-        fields.put("price", Integer.toString(template.price()));
-        fields.put("level", Integer.toString(template.level()));
-        fields.put("min", Integer.toString(template.minLevel()));
-        fields.put("mods", template.packedModifiers());
+        fields.put("type", Integer.toString(template.getTypeId()));
+        fields.put("price", Integer.toString(template.getPrice()));
+        fields.put("level", Integer.toString(template.getLevel()));
+        fields.put("min", Integer.toString(template.getMinLevel()));
+        fields.put("mods", template.getPackedModifiers());
         return call("item.reshape", fields).get("ok") != null;
     }
 }

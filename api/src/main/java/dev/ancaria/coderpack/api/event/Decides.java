@@ -5,7 +5,7 @@ package dev.ancaria.coderpack.api.event;
  * listener returns.
  *
  * <p>It exists so the decision is a matter of types rather than of discipline.
- * {@code Events.decide} takes an {@code E extends Decides<M>} and a function
+ * {@code EventRegistry.decide} takes an {@code E extends Decides<M>} and a function
  * returning {@code M}, so an event with nothing to decide cannot be passed to
  * it at all, and one that can be gets its own {@code Mutation} pinned as the
  * return.

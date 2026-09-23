@@ -63,7 +63,7 @@ class VerdictTest {
     void aCombatArtAnswersWithTheLevelToStore() {
         CombatArt art = new CombatArt(Map.of("index", "3", "id", "67", "aspect", "0",
                 "prev", "13", "next", "14", "step", "1"));
-        Fold.apply(art, CombatArt.Mutation.change(art.value() + 1));
+        Fold.apply(art, CombatArt.Mutation.change(art.getValue() + 1));
         assertEquals("END 9 set.next=15", Verdict.of(9, art).encode());
     }
 

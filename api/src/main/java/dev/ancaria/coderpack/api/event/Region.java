@@ -19,17 +19,17 @@ public final class Region extends Event {
         this.entered = entered;
     }
 
-    public int id() {
-        return (int) num("id");
+    public int getId() {
+        return (int) getNum("id");
     }
 
     /** True on the way in, false on the way out. */
-    public boolean entered() {
+    public boolean isEntered() {
         return entered;
     }
 
     /** On entry, the region the hero came from, or 0 when unknown. 0 on exit. */
-    public int from() {
-        return (int) num("from");
+    public int getFrom() {
+        return (int) getNum("from");
     }
 }

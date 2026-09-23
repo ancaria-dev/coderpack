@@ -15,7 +15,7 @@ public final class Resurrection extends Event {
     }
 
     /** Resurrections so far, this one included. */
-    public long count() {
-        return num("count");
+    public long getCount() {
+        return getNum("count");
     }
 }

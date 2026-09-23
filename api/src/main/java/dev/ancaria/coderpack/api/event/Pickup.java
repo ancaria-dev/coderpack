@@ -34,7 +34,7 @@ import javax.annotation.Nullable;
  * reference that resolves to nothing, and a replacement hands it another.
  *
  * <p>Only the hero's pickups are asked about. A creature picking something up
- * arrives as an ordinary event with {@link #player()} false, and a veto on it
+ * arrives as an ordinary event with {@link #isPlayer()} false, and a veto on it
  * does nothing.
  */
 public final class Pickup extends Decision implements Decides<Pickup.Mutation> {
@@ -49,26 +49,26 @@ public final class Pickup extends Decision implements Decides<Pickup.Mutation> {
     public Pickup(Map<String, String> fields) {
         super(fields);
         this.item = new Item(fields);
-        this.ref = initial();
+        this.ref = getInitial();
     }
 
     @Nonnull
-    public Item item() {
+    public Item getItem() {
         return item;
     }
 
     /** True when the hero is picking it up rather than a creature. */
-    public boolean player() {
-        return num("player") == 1;
+    public boolean isPlayer() {
+        return getNum("player") == 1;
     }
 
     /** The object the game means to pick up. */
-    public int initial() {
-        return (int) num("ref");
+    public int getInitial() {
+        return (int) getNum("ref");
     }
 
     /** The object it will pick up, with every earlier listener folded in. */
-    public int ref() {
+    public int getRef() {
         return ref;
     }
 
@@ -77,15 +77,15 @@ public final class Pickup extends Decision implements Decides<Pickup.Mutation> {
      *
      * <p>A listener that would rather not fight over an item somebody else is
      * already changing asks this first. There is no such question for
-     * {@link #ref()}, which answers it by differing from {@link #initial()}.
+     * {@link #getRef()}, which answers it by differing from {@link #getInitial()}.
      */
-    public boolean edited() {
+    public boolean isEdited() {
         return typeId != null || template != null;
     }
 
     @Override
     void reset() {
-        this.ref = initial();
+        this.ref = getInitial();
         this.typeId = null;
         this.template = null;
     }
@@ -111,17 +111,17 @@ public final class Pickup extends Decision implements Decides<Pickup.Mutation> {
     @Nonnull
     Map<String, String> verdict() {
         Map<String, String> fields = new LinkedHashMap<>();
-        if (ref != initial()) {
+        if (ref != getInitial()) {
             fields.put("ref", Integer.toString(ref));
         }
         if (typeId != null) {
             fields.put("type", Integer.toString(typeId));
         } else if (template != null) {
-            fields.put("type", Integer.toString(template.typeId()));
-            fields.put("price", Integer.toString(template.price()));
-            fields.put("level", Integer.toString(template.level()));
-            fields.put("min", Integer.toString(template.minLevel()));
-            fields.put("mods", template.packedModifiers());
+            fields.put("type", Integer.toString(template.getTypeId()));
+            fields.put("price", Integer.toString(template.getPrice()));
+            fields.put("level", Integer.toString(template.getLevel()));
+            fields.put("min", Integer.toString(template.getMinLevel()));
+            fields.put("mods", template.getPackedModifiers());
         }
         return fields;
     }
@@ -183,7 +183,7 @@ public final class Pickup extends Decision implements Decides<Pickup.Mutation> {
          * <p>Careful: the type is the item's <em>label</em>. It changes what
          * the item is called and how it is drawn, and nothing else. A rune
          * retyped into another rune still upgrades the combat art it always
-         * did. What an item does is its {@link Item#modifiers()}, which is what
+         * did. What an item does is its {@link Item#getModifiers()}, which is what
          * {@link #reshape(Item)} carries.
          */
         @Nonnull
@@ -219,7 +219,7 @@ public final class Pickup extends Decision implements Decides<Pickup.Mutation> {
         @Override
         @Nonnull
         public Mutation last() {
-            return new Mutation(kind(), true, ref, typeId, template);
+            return new Mutation(getKind(), true, ref, typeId, template);
         }
     }
 }

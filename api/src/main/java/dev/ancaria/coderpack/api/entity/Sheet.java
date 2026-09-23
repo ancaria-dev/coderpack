@@ -30,19 +30,19 @@ public final class Sheet {
     }
 
     /** The armour bonus in percent. */
-    public int armorPercent() {
+    public int getArmorPercent() {
         return armor;
     }
 
-    public int attackSpeed() {
+    public int getAttackSpeed() {
         return attackSpeed;
     }
 
-    public int movementSpeed() {
+    public int getMovementSpeed() {
         return movementSpeed;
     }
 
-    public int resistance(Element element) {
+    public int getResistance(Element element) {
         return resistances[element.ordinal()];
     }
 }

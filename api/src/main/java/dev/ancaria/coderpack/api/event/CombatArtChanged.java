@@ -9,23 +9,23 @@ public final class CombatArtChanged extends Event {
         super(fields);
     }
 
-    public int index() {
-        return (int) num("index");
+    public int getIndex() {
+        return (int) getNum("index");
     }
 
-    public int artId() {
-        return (int) num("id");
+    public int getArtId() {
+        return (int) getNum("id");
     }
 
-    public int aspect() {
-        return (int) num("aspect");
+    public int getAspect() {
+        return (int) getNum("aspect");
     }
 
-    public int previous() {
-        return (int) num("prev");
+    public int getPrevious() {
+        return (int) getNum("prev");
     }
 
-    public int level() {
-        return (int) num("next");
+    public int getLevel() {
+        return (int) getNum("next");
     }
 }

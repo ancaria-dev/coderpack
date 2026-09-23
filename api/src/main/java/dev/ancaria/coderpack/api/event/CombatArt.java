@@ -9,10 +9,10 @@ import javax.annotation.Nonnull;
  * level, the number the game is about to store. The gear bonus the tooltip adds
  * on top is not part of it.
  *
- * <p>An art is identified by {@link #artId()} and {@link #aspect()} together.
+ * <p>An art is identified by {@link #getArtId()} and {@link #getAspect()} together.
  * Ids are per class, so the same name has a different id on another class, and
  * the plain weapon moves several classes share by name are told apart by the
- * aspect. {@link #index()} is the art's place in the character's own list,
+ * aspect. {@link #getIndex()} is the art's place in the character's own list,
  * which is not the order the combat-art screen shows.
  *
  * <p>A veto keeps the old level, and the rune is still spent: taking it out of
@@ -24,26 +24,26 @@ public final class CombatArt extends Amount implements Decides<CombatArt.Mutatio
         super(fields, "next");
     }
 
-    public int index() {
-        return (int) num("index");
+    public int getIndex() {
+        return (int) getNum("index");
     }
 
-    public int artId() {
-        return (int) num("id");
+    public int getArtId() {
+        return (int) getNum("id");
     }
 
-    public int aspect() {
-        return (int) num("aspect");
+    public int getAspect() {
+        return (int) getNum("aspect");
     }
 
     /** The base level before this rune. */
-    public long previous() {
-        return num("prev");
+    public long getPrevious() {
+        return getNum("prev");
     }
 
     /** How much the rune adds on its own. */
-    public long step() {
-        return num("step");
+    public long getStep() {
+        return getNum("step");
     }
 
     /** What a {@code CombatArt} listener returns. */
@@ -84,7 +84,7 @@ public final class CombatArt extends Amount implements Decides<CombatArt.Mutatio
         @Override
         @Nonnull
         public Mutation last() {
-            return new Mutation(kind(), true, value());
+            return new Mutation(getKind(), true, getValue());
         }
     }
 }

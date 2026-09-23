@@ -17,21 +17,21 @@ public final class Kill extends Event {
     }
 
     /** Opponents defeated so far, this one included. */
-    public long total() {
-        return num("total");
+    public long getTotal() {
+        return getNum("total");
     }
 
     /**
      * The victim's type, as the kill recorder was handed it. Expected to be the
-     * same id {@link MobDeath#typeId()} reports, and not yet confirmed in game.
+     * same id {@link MobDeath#getTypeId()} reports, and not yet confirmed in game.
      */
-    public int typeId() {
-        return (int) num("type");
+    public int getTypeId() {
+        return (int) getNum("type");
     }
 
-    /** The internal name for {@link #typeId()}. */
+    /** The internal name for {@link #getTypeId()}. */
     @Nullable
-    public String typeName() {
-        return text("name");
+    public String getTypeName() {
+        return getText("name");
     }
 }

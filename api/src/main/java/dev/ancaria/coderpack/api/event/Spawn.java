@@ -28,9 +28,9 @@ public final class Spawn extends Event {
     }
 
     @Nonnull
-    public Creature creature() {
+    public Creature getCreature() {
         if (creature == null) {
-            creature = new Creature(fields());
+            creature = new Creature(getFields());
         }
         return creature;
     }

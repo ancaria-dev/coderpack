@@ -19,30 +19,30 @@ public final class Trade extends Event {
     }
 
     /** True for a purchase, false for a sale. */
-    public boolean bought() {
+    public boolean isBought() {
         return bought;
     }
 
     /** A sale by shift-click from the inventory rather than onto the merchant. */
-    public boolean quick() {
-        return num("quick") == 1;
+    public boolean isQuick() {
+        return getNum("quick") == 1;
     }
 
     /** What the game charged or paid, before any {@link Gold} listener. */
-    public long price() {
-        return num("price");
+    public long getPrice() {
+        return getNum("price");
     }
 
-    public int ref() {
-        return (int) num("ref");
+    public int getRef() {
+        return (int) getNum("ref");
     }
 
-    public int typeId() {
-        return (int) num("type");
+    public int getTypeId() {
+        return (int) getNum("type");
     }
 
     @Nullable
-    public String typeName() {
-        return text("name");
+    public String getTypeName() {
+        return getText("name");
     }
 }

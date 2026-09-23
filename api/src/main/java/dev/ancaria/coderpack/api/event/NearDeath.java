@@ -9,15 +9,15 @@ public final class NearDeath extends Event {
         super(fields);
     }
 
-    public long hp() {
-        return num("next");
+    public long getHp() {
+        return getNum("next");
     }
 
-    public long maxHp() {
-        return num("max");
+    public long getMaxHp() {
+        return getNum("max");
     }
 
-    public int percent() {
-        return (int) num("percent");
+    public int getPercent() {
+        return (int) getNum("percent");
     }
 }

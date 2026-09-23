@@ -18,18 +18,18 @@ public final class Attribute extends Amount implements Decides<Attribute.Mutatio
     }
 
     /** 0 Strength, 1 Endurance, 2 Dexterity, 3 PhysReg, 4 MentalReg, 5 Charisma. */
-    public int index() {
-        return (int) num("attr");
+    public int getIndex() {
+        return (int) getNum("attr");
     }
 
     @Nullable
-    public String name() {
-        return text("name");
+    public String getName() {
+        return getText("name");
     }
 
     /** The value before the point was spent. */
-    public long previous() {
-        return num("prev");
+    public long getPrevious() {
+        return getNum("prev");
     }
 
     /** What an {@code Attribute} listener returns. */
@@ -71,7 +71,7 @@ public final class Attribute extends Amount implements Decides<Attribute.Mutatio
         @Override
         @Nonnull
         public Mutation last() {
-            return new Mutation(kind(), true, value());
+            return new Mutation(getKind(), true, getValue());
         }
     }
 }

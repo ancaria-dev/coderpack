@@ -13,11 +13,11 @@ public final class LevelUp extends Event {
         super(fields);
     }
 
-    public int previous() {
-        return (int) num("prev");
+    public int getPrevious() {
+        return (int) getNum("prev");
     }
 
-    public int level() {
-        return (int) num("next");
+    public int getLevel() {
+        return (int) getNum("next");
     }
 }

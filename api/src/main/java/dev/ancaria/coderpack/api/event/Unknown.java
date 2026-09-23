@@ -9,8 +9,8 @@ import javax.annotation.Nonnull;
  *
  * <p>The agent is allowed to run ahead of the API, and a mod that wants
  * everything, a tracer most obviously, should still see it. Subscribing to
- * {@link Event} catches these along with the rest. {@link #name()} is the wire
- * name and {@link #fields()} is the whole payload.
+ * {@link Event} catches these along with the rest. {@link #getName()} is the wire
+ * name and {@link #getFields()} is the whole payload.
  */
 public final class Unknown extends Event {
 
@@ -22,7 +22,7 @@ public final class Unknown extends Event {
     }
 
     @Nonnull
-    public String name() {
+    public String getName() {
         return name;
     }
 }

@@ -1,6 +1,7 @@
 package dev.ancaria.coderpack.api.entity;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * The hero. Reads come from the last state Coderpack saw, so they are free.
@@ -13,28 +14,28 @@ import javax.annotation.Nonnull;
 public interface Player {
 
     @Nonnull
-    HeroClass heroClass();
+    HeroClass getHeroClass();
 
-    int level();
+    int getLevel();
 
-    long hp();
+    long getHp();
 
-    long maxHp();
+    long getMaxHp();
 
-    long gold();
+    long getGold();
 
-    long exp();
+    long getExp();
 
     /** World coordinates, not the HUD numbers (those are world / 53.66563). */
-    int x();
+    int getX();
 
-    int y();
+    int getY();
 
     void teleport(int x, int y);
 
-    void hp(long value);
+    void setHp(long value);
 
-    void gold(long value);
+    void setGold(long value);
 
     /** Adds experience through the game's own addExperience, which clamps. */
     void addExp(long amount);
@@ -44,36 +45,44 @@ public interface Player {
     // current; these are not covered by any event, or not completely.
 
     @Nonnull
-    Attributes attributes();
+    Attributes getAttributes();
 
     /**
      * Sets an attribute, then runs the game's own derived-stat recalculation,
      * so max HP and the rest follow at once. Clamped to 0..65535.
      */
-    void attribute(Attributes.Kind kind, int value);
+    void setAttribute(Attributes.Kind kind, int value);
 
     @Nonnull
-    Skills skills();
+    Skills getSkills();
 
     /** Sets the level in a skill slot and recalculates. Clamped to 0..255. */
-    void skill(int slot, int level);
+    void setSkill(int slot, int level);
 
     @Nonnull
-    CombatArts combatArts();
+    CombatArts getCombatArts();
+
+    /**
+     * One combat art by its storage index, or null when the hero owns none at
+     * that index. The same round-trip as {@link #getCombatArts()}, which is
+     * the one to use when more than one art is wanted.
+     */
+    @Nullable
+    CombatArts.Art getCombatArt(int index);
 
     /**
      * Sets a combat art's base level, the number runes raise, by its storage
      * index. Clamped to 0..255.
      */
-    void combatArt(int index, int level);
+    void setCombatArt(int index, int level);
 
     /** The journal's Statistics page. */
     @Nonnull
-    Stats stats();
+    Stats getStats();
 
     /** Derived numbers from the character screen. */
     @Nonnull
-    Sheet sheet();
+    Sheet getSheet();
 
     /** Sets HP to 0, the call the game's own sudden-death action makes. */
     void kill();

@@ -14,12 +14,12 @@ public final class GoldChanged extends Event {
         super(fields);
     }
 
-    public long gold() {
-        return num("next");
+    public long getGold() {
+        return getNum("next");
     }
 
     /** 0 on the first report of a session, which is the starting total. */
-    public long delta() {
-        return num("delta");
+    public long getDelta() {
+        return getNum("delta");
     }
 }

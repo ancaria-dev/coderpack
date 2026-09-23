@@ -11,21 +11,21 @@ public final class Drink extends Event {
         super(fields);
     }
 
-    public int ref() {
-        return (int) num("ref");
+    public int getRef() {
+        return (int) getNum("ref");
     }
 
-    public int typeId() {
-        return (int) num("type");
+    public int getTypeId() {
+        return (int) getNum("type");
     }
 
     /** Internal name, e.g. TYPE_OBJECT_POTION_LARGE_RED. */
     @Nullable
-    public String typeName() {
-        return text("name");
+    public String getTypeName() {
+        return getText("name");
     }
 
-    public boolean player() {
-        return num("player") == 1;
+    public boolean isPlayer() {
+        return getNum("player") == 1;
     }
 }

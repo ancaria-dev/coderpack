@@ -10,7 +10,7 @@ import javax.annotation.Nullable;
  * the hero. A snapshot, so its numbers do not follow the creature around. Ask
  * again through {@code Realm} for fresh ones.
  *
- * <p>{@link #ref()} is what every action on a creature takes. It is stable for
+ * <p>{@link #getRef()} is what every action on a creature takes. It is stable for
  * the session and means nothing across launches.
  */
 public final class Creature {
@@ -21,54 +21,54 @@ public final class Creature {
         this.fields = fields;
     }
 
-    public int ref() {
+    public int getRef() {
         return number("ref");
     }
 
-    public int typeId() {
+    public int getTypeId() {
         return number("type");
     }
 
     /** Internal name, e.g. TYPE_NPC_GHUL01. Stable and English, so match on it. */
     @Nullable
-    public String typeName() {
+    public String getTypeName() {
         return fields.get("name");
     }
 
-    public int level() {
+    public int getLevel() {
         return number("level");
     }
 
-    public long hp() {
+    public long getHp() {
         return number("hp");
     }
 
-    public long maxHp() {
+    public long getMaxHp() {
         return number("maxHp");
     }
 
-    /** World coordinates, like {@link Player#x()}. */
-    public int x() {
+    /** World coordinates, like {@link Player#getX()}. */
+    public int getX() {
         return number("x");
     }
 
-    public int y() {
+    public int getY() {
         return number("y");
     }
 
     /** True for the hero. */
-    public boolean player() {
+    public boolean isPlayer() {
         return number("player") == 1;
     }
 
-    public boolean alive() {
-        return hp() > 0;
+    public boolean isAlive() {
+        return getHp() > 0;
     }
 
     @Override
     @Nonnull
     public String toString() {
-        return (typeName() == null ? "creature" : typeName()) + "#" + ref();
+        return (getTypeName() == null ? "creature" : getTypeName()) + "#" + getRef();
     }
 
     private int number(String key) {

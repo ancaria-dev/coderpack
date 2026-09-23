@@ -10,7 +10,7 @@ import javax.annotation.Nonnull;
  * rewritten total is detected and reset to 1. Changing the delta lets the game
  * compute the total itself and refresh its own mirrors.
  *
- * <p>This is the one event whose {@link #value()} is a delta rather than the
+ * <p>This is the one event whose {@link #getValue()} is a delta rather than the
  * number about to be stored. The game forced the shape, and it is the shape the
  * rest of the API would have wanted anyway.
  */
@@ -21,12 +21,12 @@ public final class Gold extends Amount implements Decides<Gold.Mutation> {
     }
 
     /** The total before this change. Not up for decision. */
-    public long current() {
-        return num("current");
+    public long getCurrent() {
+        return getNum("current");
     }
 
-    public boolean spending() {
-        return "spend".equals(text("dir"));
+    public boolean isSpending() {
+        return "spend".equals(getText("dir"));
     }
 
     /** What a {@code Gold} listener returns. */
@@ -68,7 +68,7 @@ public final class Gold extends Amount implements Decides<Gold.Mutation> {
         @Override
         @Nonnull
         public Mutation last() {
-            return new Mutation(kind(), true, value());
+            return new Mutation(getKind(), true, getValue());
         }
     }
 }

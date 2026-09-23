@@ -28,7 +28,7 @@ public final class Fold {
      *         sees this occurrence. Monitors still run.
      */
     public static boolean apply(Decision decision, @Nonnull EventMutation mutation) {
-        switch (mutation.kind()) {
+        switch (mutation.getKind()) {
             case NONE -> {
             }
             case RESET -> {
@@ -55,6 +55,6 @@ public final class Fold {
      */
     @Nonnull
     public static Map<String, String> verdict(Decision decision) {
-        return decision.vetoed() ? Map.of() : decision.verdict();
+        return decision.isVetoed() ? Map.of() : decision.verdict();
     }
 }

@@ -13,16 +13,16 @@ public final class SkillPointsChanged extends Event {
         super(fields);
     }
 
-    public int previous() {
-        return (int) num("prev");
+    public int getPrevious() {
+        return (int) getNum("prev");
     }
 
-    public int points() {
-        return (int) num("next");
+    public int getPoints() {
+        return (int) getNum("next");
     }
 
     /** More than before: a grant rather than a spend. */
-    public boolean granted() {
-        return points() > previous();
+    public boolean isGranted() {
+        return getPoints() > getPrevious();
     }
 }

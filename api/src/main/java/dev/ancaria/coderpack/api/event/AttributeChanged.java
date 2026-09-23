@@ -12,20 +12,20 @@ public final class AttributeChanged extends Event {
     }
 
     /** 0 Strength, 1 Endurance, 2 Dexterity, 3 PhysReg, 4 MentalReg, 5 Charisma. */
-    public int index() {
-        return (int) num("attr");
+    public int getIndex() {
+        return (int) getNum("attr");
     }
 
     @Nullable
-    public String name() {
-        return text("name");
+    public String getName() {
+        return getText("name");
     }
 
-    public long previous() {
-        return num("prev");
+    public long getPrevious() {
+        return getNum("prev");
     }
 
-    public long value() {
-        return num("next");
+    public long getValue() {
+        return getNum("next");
     }
 }

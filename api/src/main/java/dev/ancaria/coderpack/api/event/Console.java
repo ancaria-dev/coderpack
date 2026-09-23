@@ -11,7 +11,7 @@ import javax.annotation.Nonnull;
  * own commands as typed.
  *
  * <pre>{@code
- * events.decide(Console.class, line -> line.text().startsWith("/heal")
+ * events.decide(Console.class, line -> line.getText().startsWith("/heal")
  *         ? Console.Mutation.veto() : Console.Mutation.none());
  * }</pre>
  */
@@ -23,8 +23,8 @@ public final class Console extends Decision implements Decides<Console.Mutation>
 
     /** The whole line, as typed. */
     @Nonnull
-    public String text() {
-        String text = text("text");
+    public String getText() {
+        String text = getText("text");
         return text == null ? "" : text;
     }
 
@@ -75,7 +75,7 @@ public final class Console extends Decision implements Decides<Console.Mutation>
         @Override
         @Nonnull
         public Mutation last() {
-            return new Mutation(kind(), true);
+            return new Mutation(getKind(), true);
         }
     }
 }

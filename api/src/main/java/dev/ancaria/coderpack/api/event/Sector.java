@@ -12,11 +12,11 @@ public final class Sector extends Event {
         super(fields);
     }
 
-    public int x() {
-        return (int) num("x");
+    public int getX() {
+        return (int) getNum("x");
     }
 
-    public int y() {
-        return (int) num("y");
+    public int getY() {
+        return (int) getNum("y");
     }
 }

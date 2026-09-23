@@ -13,7 +13,7 @@ import javax.annotation.Nullable;
  *
  * <p>Every call is one round-trip to the game, and what comes back is a
  * snapshot. A creature list does not follow the creatures around, so ask again
- * rather than keeping one. Creatures are addressed by {@link Creature#ref()},
+ * rather than keeping one. Creatures are addressed by {@link Creature#getRef()},
  * which is stable for the session and means nothing across launches.
  */
 public interface Realm {

@@ -14,11 +14,11 @@ public final class Moved extends Event {
         super(fields);
     }
 
-    public int from() {
-        return (int) num("from");
+    public int getFrom() {
+        return (int) getNum("from");
     }
 
-    public int to() {
-        return (int) num("to");
+    public int getTo() {
+        return (int) getNum("to");
     }
 }

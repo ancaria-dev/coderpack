@@ -42,15 +42,15 @@ final class PlayerLink implements Player {
     void observe(Event event) {
         if (event instanceof Hero hero) {
             present = true;
-            heroClass = hero.heroClass();
-            level = hero.level();
-            hp = hero.hp();
-            maxHp = hero.maxHp();
-            gold = hero.gold();
-            exp = hero.exp();
+            heroClass = hero.getHeroClass();
+            level = hero.getLevel();
+            hp = hero.getHp();
+            maxHp = hero.getMaxHp();
+            gold = hero.getGold();
+            exp = hero.getExp();
         } else if (event instanceof Position position) {
-            x = position.x();
-            y = position.y();
+            x = position.getX();
+            y = position.getY();
         }
     }
 
@@ -89,42 +89,42 @@ final class PlayerLink implements Player {
     }
 
     @Override
-    public HeroClass heroClass() {
+    public HeroClass getHeroClass() {
         return heroClass;
     }
 
     @Override
-    public int level() {
+    public int getLevel() {
         return level;
     }
 
     @Override
-    public long hp() {
+    public long getHp() {
         return hp;
     }
 
     @Override
-    public long maxHp() {
+    public long getMaxHp() {
         return maxHp;
     }
 
     @Override
-    public long gold() {
+    public long getGold() {
         return gold;
     }
 
     @Override
-    public long exp() {
+    public long getExp() {
         return exp;
     }
 
     @Override
-    public int x() {
+    public int getX() {
         return x;
     }
 
     @Override
-    public int y() {
+    public int getY() {
         return y;
     }
 
@@ -137,12 +137,12 @@ final class PlayerLink implements Player {
     }
 
     @Override
-    public void hp(long value) {
+    public void setHp(long value) {
         hp = number(game.call("player.hp", "value", value).get("hp"), value);
     }
 
     @Override
-    public void gold(long value) {
+    public void setGold(long value) {
         gold = number(game.call("player.gold", "value", value).get("gold"), value);
     }
 
@@ -156,25 +156,25 @@ final class PlayerLink implements Player {
     // failed call is an empty one rather than an exception.
 
     @Override
-    public Attributes attributes() {
+    public Attributes getAttributes() {
         return new Attributes(game.call("player.attributes", Map.of()));
     }
 
     @Override
-    public void attribute(Attributes.Kind kind, int value) {
+    public void setAttribute(Attributes.Kind kind, int value) {
         Map<String, String> fields = new LinkedHashMap<>();
-        fields.put("index", Integer.toString(kind.index()));
+        fields.put("index", Integer.toString(kind.getIndex()));
         fields.put("value", Integer.toString(value));
         game.call("player.attribute", fields);
     }
 
     @Override
-    public Skills skills() {
+    public Skills getSkills() {
         return new Skills(game.call("player.skills", Map.of()));
     }
 
     @Override
-    public void skill(int slot, int level) {
+    public void setSkill(int slot, int level) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("slot", Integer.toString(slot));
         fields.put("value", Integer.toString(level));
@@ -182,12 +182,17 @@ final class PlayerLink implements Player {
     }
 
     @Override
-    public CombatArts combatArts() {
+    public CombatArts getCombatArts() {
         return new CombatArts(game.call("player.arts", Map.of()));
     }
 
     @Override
-    public void combatArt(int index, int level) {
+    public CombatArts.Art getCombatArt(int index) {
+        return getCombatArts().get(index);
+    }
+
+    @Override
+    public void setCombatArt(int index, int level) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("index", Integer.toString(index));
         fields.put("level", Integer.toString(level));
@@ -195,12 +200,12 @@ final class PlayerLink implements Player {
     }
 
     @Override
-    public Stats stats() {
+    public Stats getStats() {
         return new Stats(game.call("player.stats", Map.of()));
     }
 
     @Override
-    public Sheet sheet() {
+    public Sheet getSheet() {
         return new Sheet(game.call("player.sheet", Map.of()));
     }
 

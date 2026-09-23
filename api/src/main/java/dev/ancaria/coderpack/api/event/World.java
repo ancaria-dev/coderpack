@@ -24,7 +24,7 @@ public final class World extends Event {
     }
 
     @Nonnull
-    public Phase phase() {
+    public Phase getPhase() {
         return phase;
     }
 }

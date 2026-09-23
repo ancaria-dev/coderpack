@@ -27,11 +27,67 @@ public final class CombatArts implements Iterable<CombatArts.Art> {
      * One art. {@code level} is the base level runes raise, {@code bonus} what
      * gear adds on top, and the tooltip shows their sum.
      */
-    public record Art(int index, int artId, int aspect, int level, int bonus) {
+    public static final class Art {
+
+        private final int index;
+        private final int artId;
+        private final int aspect;
+        private final int level;
+        private final int bonus;
+
+        public Art(int index, int artId, int aspect, int level, int bonus) {
+            this.index = index;
+            this.artId = artId;
+            this.aspect = aspect;
+            this.level = level;
+            this.bonus = bonus;
+        }
+
+        /** The storage index, the one {@code CombatArt.getIndex()} reports. */
+        public int getIndex() {
+            return index;
+        }
+
+        /** The art's id within its class. */
+        public int getArtId() {
+            return artId;
+        }
+
+        public int getAspect() {
+            return aspect;
+        }
+
+        /** The base level, the number runes raise. */
+        public int getLevel() {
+            return level;
+        }
+
+        /** What gear adds on top of the base level. */
+        public int getBonus() {
+            return bonus;
+        }
 
         /** The number the tooltip shows. */
-        public int total() {
+        public int getTotal() {
             return level + bonus;
+        }
+
+        @Override
+        public boolean equals(@Nullable Object other) {
+            return other instanceof Art that && index == that.index && artId == that.artId
+                    && aspect == that.aspect && level == that.level && bonus == that.bonus;
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(index, artId, aspect, level, bonus);
+        }
+
+        @Override
+        @Nonnull
+        public String toString() {
+            return "Art[index=" + index + ", artId=" + artId + ", aspect=" + aspect
+                    + ", level=" + level + ", bonus=" + bonus + "]";
         }
     }
 
@@ -54,7 +110,7 @@ public final class CombatArts implements Iterable<CombatArts.Art> {
         this.arts = Collections.unmodifiableList(out);
     }
 
-    /** By storage index, the same index {@code CombatArt.index()} reports. */
+    /** By storage index, the same index {@code CombatArt.getIndex()} reports. */
     @Nullable
     public Art get(int index) {
         return index >= 0 && index < arts.size() ? arts.get(index) : null;
@@ -63,7 +119,7 @@ public final class CombatArts implements Iterable<CombatArts.Art> {
     @Nullable
     public Art find(int artId, int aspect) {
         for (Art art : arts) {
-            if (art.artId() == artId && art.aspect() == aspect) {
+            if (art.getArtId() == artId && art.getAspect() == aspect) {
                 return art;
             }
         }

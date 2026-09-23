@@ -65,31 +65,31 @@ class RegistryTest {
     @Test
     void anUnmappedNameStillArrives() {
         Event event = build("weather.rain_start", Map.of("intensity", "3"));
-        assertEquals("weather.rain_start", assertInstanceOf(Unknown.class, event).name());
+        assertEquals("weather.rain_start", assertInstanceOf(Unknown.class, event).getName());
     }
 
     @Test
     void theAgentAnnouncingItselfIsTheAttachedPhase() {
         Event event = build("agent.ready", Map.of("base", "0x400000"));
-        assertEquals(World.Phase.ATTACHED, assertInstanceOf(World.class, event).phase());
+        assertEquals(World.Phase.ATTACHED, assertInstanceOf(World.class, event).getPhase());
     }
 
     @Test
     void healthCarriesTheBlow() {
         HealthChanged event = assertInstanceOf(HealthChanged.class, build("health.changed",
                 Map.of("kind", "damage", "damage", "30", "prev", "100", "next", "70", "max", "120")));
-        assertEquals(30, event.damage());
-        assertEquals(100, event.previous());
-        assertEquals(70, event.hp());
-        assertEquals(120, event.maxHp());
+        assertEquals(30, event.getDamage());
+        assertEquals(100, event.getPrevious());
+        assertEquals(70, event.getHp());
+        assertEquals(120, event.getMaxHp());
     }
 
     @Test
     void goldReportsTheTotalAndTheStep() {
         GoldChanged event = assertInstanceOf(GoldChanged.class,
                 build("gold.changed", Map.of("next", "150", "delta", "100")));
-        assertEquals(150, event.gold());
-        assertEquals(100, event.delta());
+        assertEquals(150, event.getGold());
+        assertEquals(100, event.getDelta());
     }
 
     @Test
@@ -98,7 +98,7 @@ class RegistryTest {
                 build("skillpoints.changed", Map.of("prev", "3", "next", "2")));
         SkillPointsChanged granted = assertInstanceOf(SkillPointsChanged.class,
                 build("skillpoints.changed", Map.of("prev", "2", "next", "4", "reason", "7")));
-        assertFalse(spent.granted());
-        assertTrue(granted.granted());
+        assertFalse(spent.isGranted());
+        assertTrue(granted.isGranted());
     }
 }

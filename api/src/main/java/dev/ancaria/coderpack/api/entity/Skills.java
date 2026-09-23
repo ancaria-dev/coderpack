@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * The hero's skill slots as they were when asked, and the points left to
@@ -19,10 +20,43 @@ import javax.annotation.Nonnull;
  */
 public final class Skills implements Iterable<Skills.Slot> {
 
-    public record Slot(int index, int level) {
+    /** One slot and the level in it. */
+    public static final class Slot {
 
-        public boolean empty() {
+        private final int index;
+        private final int level;
+
+        public Slot(int index, int level) {
+            this.index = index;
+            this.level = level;
+        }
+
+        public int getIndex() {
+            return index;
+        }
+
+        public int getLevel() {
+            return level;
+        }
+
+        public boolean isEmpty() {
             return level == 0;
+        }
+
+        @Override
+        public boolean equals(@Nullable Object other) {
+            return other instanceof Slot that && index == that.index && level == that.level;
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * index + level;
+        }
+
+        @Override
+        @Nonnull
+        public String toString() {
+            return "Slot[index=" + index + ", level=" + level + "]";
         }
     }
 
@@ -41,7 +75,7 @@ public final class Skills implements Iterable<Skills.Slot> {
 
     /** The level in a slot, or 0 for an empty or unknown one. */
     public int get(int slot) {
-        return slot >= 0 && slot < slots.size() ? slots.get(slot).level() : 0;
+        return slot >= 0 && slot < slots.size() ? slots.get(slot).getLevel() : 0;
     }
 
     public int size() {
@@ -49,7 +83,7 @@ public final class Skills implements Iterable<Skills.Slot> {
     }
 
     /** Unspent skill points. */
-    public int points() {
+    public int getPoints() {
         return points;
     }
 

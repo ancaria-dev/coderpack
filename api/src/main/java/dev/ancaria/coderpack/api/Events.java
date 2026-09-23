@@ -58,7 +58,7 @@ public interface Events {
      * observer returns nothing, so it cannot change the event. Use
      * {@link #decide} for that.
      *
-     * <pre>{@code events.on(Death.class, e -> context.log("blow " + e.blow()));}</pre>
+     * <pre>{@code events.on(Death.class, e -> context.log("blow " + e.getBlow()));}</pre>
      *
      * <p>The type is the same thing the annotation's parameter type is, so a
      * listener on {@link Event} still sees every event and one on
@@ -89,7 +89,7 @@ public interface Events {
      * Registers a listener that decides, at {@link Priority#NORMAL} and hearing
      * about vetoed events.
      *
-     * <pre>{@code events.decide(Experience.class, e -> Experience.Mutation.change(e.value() * 2));}</pre>
+     * <pre>{@code events.decide(Experience.class, e -> Experience.Mutation.change(e.getValue() * 2));}</pre>
      *
      * <p>This is the one method {@code on} cannot be: two overloads split by
      * lambda return type are ambiguous in Java, and in Kotlin the losing one

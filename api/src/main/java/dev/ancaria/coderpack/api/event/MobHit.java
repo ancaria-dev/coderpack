@@ -14,35 +14,35 @@ public class MobHit extends Event {
         super(fields);
     }
 
-    public int typeId() {
-        return (int) num("type");
+    public int getTypeId() {
+        return (int) getNum("type");
     }
 
     /**
      * Internal name, e.g. TYPE_NPC_GHUL01. Stable and English, so match on it.
      */
     @Nullable
-    public String typeName() {
-        return text("name");
+    public String getTypeName() {
+        return getText("name");
     }
 
-    public int level() {
-        return (int) num("level");
+    public int getLevel() {
+        return (int) getNum("level");
     }
 
-    public long hp() {
-        return num("prev");
+    public long getHp() {
+        return getNum("prev");
     }
 
-    public long next() {
-        return num("next");
+    public long getNext() {
+        return getNum("next");
     }
 
-    public long maxHp() {
-        return num("max");
+    public long getMaxHp() {
+        return getNum("max");
     }
 
-    public long damage() {
-        return num("damage");
+    public long getDamage() {
+        return getNum("damage");
     }
 }

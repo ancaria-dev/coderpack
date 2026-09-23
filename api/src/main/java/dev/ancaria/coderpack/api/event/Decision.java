@@ -24,7 +24,7 @@ public abstract sealed class Decision extends Event permits Amount, Console, Pic
     }
 
     /** True when an earlier listener vetoed and no later one reset it. */
-    public final boolean vetoed() {
+    public final boolean isVetoed() {
         return vetoed;
     }
 

@@ -9,7 +9,7 @@ import javax.annotation.Nullable;
 
 /**
  * Base of every event. The wire carries flat string fields. Subclasses name
- * the ones that matter and leave the rest reachable through {@link #fields()},
+ * the ones that matter and leave the rest reachable through {@link #getFields()},
  * so a new field on the agent side does not require an SDK release to be
  * usable.
  */
@@ -17,7 +17,7 @@ public abstract class Event {
 
     private final Map<String, String> fields;
 
-    // Filled on the first num() for a key. A getter is the natural thing to
+    // Filled on the first getNum() for a key. A getter is the natural thing to
     // call twice, once in a condition and once in the arithmetic, and every
     // call used to re-run parseLong over the same string.
     private Map<String, Long> numbers;
@@ -28,21 +28,21 @@ public abstract class Event {
 
     /** Raw fields as they arrived. */
     @Nonnull
-    public final Map<String, String> fields() {
+    public final Map<String, String> getFields() {
         return Collections.unmodifiableMap(fields);
     }
 
     /** The field as it arrived, or null when the agent did not send it. */
     @Nullable
-    public final String text(String key) {
+    public final String getText(String key) {
         return fields.get(key);
     }
 
-    // num() and once() are the same read with and without the memo, and which
+    // getNum() and once() are the same read with and without the memo, and which
     // one an event wants is not a matter of taste. What decides it is whether
     // the memo is ever read a second time, and how often the event fires.
     //
-    //   num()  memoizes. Right wherever a getter is plausibly read twice, or
+    //   getNum()  memoizes. Right wherever a getter is plausibly read twice, or
     //          wherever the event is rare enough that one HashMap is noise.
     //          That is nearly everything here. Damage alone has three getters a
     //          handler reads once in a condition and again in the arithmetic,
@@ -58,7 +58,7 @@ public abstract class Event {
     // resolving it in either direction.
 
     /** The field as a number, parsed on the first call and remembered. */
-    public final long num(String key) {
+    public final long getNum(String key) {
         if (numbers == null) {
             numbers = new HashMap<>(8);
         }

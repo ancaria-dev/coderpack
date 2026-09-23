@@ -33,7 +33,7 @@ final class Verdict {
     }
 
     static Frame of(long seq, Decision decision) {
-        if (decision.vetoed()) {
+        if (decision.isVetoed()) {
             return new Frame("END", seq, "", Map.of("cancel", "1"));
         }
         Map<String, String> decided = Fold.verdict(decision);

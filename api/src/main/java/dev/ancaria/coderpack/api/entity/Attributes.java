@@ -11,11 +11,11 @@ import javax.annotation.Nullable;
 
 /**
  * The hero's six attributes as they were when asked, and the points left to
- * spend. A snapshot: ask {@link Player#attributes()} again for fresh numbers.
+ * spend. A snapshot: ask {@link Player#getAttributes()} again for fresh numbers.
  *
  * <pre>{@code
- * int strength = player.attributes().get(Attributes.Kind.STRENGTH);
- * player.attributes().forEach(a -> context.log(a.kind() + " " + a.value()));
+ * int strength = player.getAttributes().get(Attributes.Kind.STRENGTH);
+ * player.getAttributes().forEach(a -> context.log(a.getKind() + " " + a.getValue()));
  * }</pre>
  */
 public final class Attributes implements Iterable<Attributes.Entry> {
@@ -24,8 +24,8 @@ public final class Attributes implements Iterable<Attributes.Entry> {
     public enum Kind {
         STRENGTH, ENDURANCE, DEXTERITY, PHYSICAL_REGENERATION, MENTAL_REGENERATION, CHARISMA;
 
-        /** 0 Strength .. 5 Charisma, as {@code Attribute.index()} reports it. */
-        public int index() {
+        /** 0 Strength .. 5 Charisma, as {@code Attribute.getIndex()} reports it. */
+        public int getIndex() {
             return ordinal();
         }
 
@@ -36,7 +36,41 @@ public final class Attributes implements Iterable<Attributes.Entry> {
         }
     }
 
-    public record Entry(Kind kind, int value) {
+    /** One attribute and its value. */
+    public static final class Entry {
+
+        private final Kind kind;
+        private final int value;
+
+        public Entry(Kind kind, int value) {
+            this.kind = kind;
+            this.value = value;
+        }
+
+        @Nonnull
+        public Kind getKind() {
+            return kind;
+        }
+
+        public int getValue() {
+            return value;
+        }
+
+        @Override
+        public boolean equals(@Nullable Object other) {
+            return other instanceof Entry that && kind == that.kind && value == that.value;
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * kind.hashCode() + value;
+        }
+
+        @Override
+        @Nonnull
+        public String toString() {
+            return kind + "=" + value;
+        }
     }
 
     private final List<Entry> entries;
@@ -54,11 +88,11 @@ public final class Attributes implements Iterable<Attributes.Entry> {
     }
 
     public int get(Kind kind) {
-        return entries.get(kind.ordinal()).value();
+        return entries.get(kind.ordinal()).getValue();
     }
 
     /** Unspent attribute points. */
-    public int points() {
+    public int getPoints() {
         return points;
     }
 

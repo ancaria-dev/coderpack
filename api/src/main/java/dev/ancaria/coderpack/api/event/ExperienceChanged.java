@@ -12,11 +12,11 @@ public final class ExperienceChanged extends Event {
         super(fields);
     }
 
-    public long previous() {
-        return num("prev");
+    public long getPrevious() {
+        return getNum("prev");
     }
 
-    public long exp() {
-        return num("next");
+    public long getExp() {
+        return getNum("next");
     }
 }

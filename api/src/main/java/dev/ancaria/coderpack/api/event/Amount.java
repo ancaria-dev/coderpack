@@ -11,11 +11,11 @@ import javax.annotation.Nonnull;
  * taste:
  *
  * <ul>
- * <li>{@link #value()} is the number with every earlier listener's work folded
+ * <li>{@link #getValue()} is the number with every earlier listener's work folded
  *     in. This is the one to read. A mod that doubles something writes
- *     {@code value() * 2}, and two such mods compose into four times without
+ *     {@code getValue() * 2}, and two such mods compose into four times without
  *     either knowing the other exists.</li>
- * <li>{@link #initial()} is what the game sent, before any mod touched it. For
+ * <li>{@link #getInitial()} is what the game sent, before any mod touched it. For
  *     a listener that reports or reasons about what the game itself
  *     intended.</li>
  * </ul>
@@ -33,33 +33,33 @@ public abstract sealed class Amount extends Decision
     Amount(Map<String, String> fields, String key) {
         super(fields);
         this.key = key;
-        this.value = num(key);
+        this.value = getNum(key);
     }
 
     /** The number as the game sent it. */
-    public final long initial() {
-        return num(key);
+    public final long getInitial() {
+        return getNum(key);
     }
 
     /** The number with every earlier listener's work folded in. */
-    public final long value() {
+    public final long getValue() {
         return value;
     }
 
     @Override
     final void reset() {
-        this.value = initial();
+        this.value = getInitial();
     }
 
     @Override
     final void change(EventMutation mutation) {
-        this.value = ((Change) mutation).value();
+        this.value = ((Change) mutation).getValue();
     }
 
     @Override
     @Nonnull
     final Map<String, String> verdict() {
-        return value == initial() ? Map.of() : Map.of(key, Long.toString(value));
+        return value == getInitial() ? Map.of() : Map.of(key, Long.toString(value));
     }
 
     /**
@@ -79,7 +79,7 @@ public abstract sealed class Amount extends Decision
         }
 
         /** Meaningless unless {@link Kind#CHANGE}. */
-        public final long value() {
+        public final long getValue() {
             return value;
         }
     }

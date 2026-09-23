@@ -19,11 +19,11 @@ public final class Stored extends Event {
     }
 
     @Nonnull
-    public Item item() {
+    public Item getItem() {
         return item;
     }
 
-    public boolean player() {
-        return num("player") == 1;
+    public boolean isPlayer() {
+        return getNum("player") == 1;
     }
 }

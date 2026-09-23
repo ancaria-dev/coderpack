@@ -17,12 +17,12 @@ public final class Quest extends Event {
     }
 
     /** The quest number, or -1 when the script named it through a variable. */
-    public int number() {
-        return (int) num("number");
+    public int getNumber() {
+        return (int) getNum("number");
     }
 
     /** True when it starts, false when it ends. */
-    public boolean started() {
+    public boolean isStarted() {
         return started;
     }
 
@@ -31,7 +31,7 @@ public final class Quest extends Event {
      * Which of the two means solved is not confirmed yet, so this is the raw
      * value and not a boolean with a name it may not deserve.
      */
-    public int endFlag() {
-        return (int) num("flag");
+    public int getEndFlag() {
+        return (int) getNum("flag");
     }
 }

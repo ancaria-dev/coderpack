@@ -28,11 +28,11 @@ class SnapshotTest {
                 "names", "50=TYPE_NPC_GHUL01,9=TYPE_NPC_DAEMONIN"));
         assertEquals(2, found.size());
         Creature ghoul = found.get(0);
-        assertEquals(812, ghoul.ref());
-        assertEquals("TYPE_NPC_GHUL01", ghoul.typeName());
-        assertEquals(40, ghoul.maxHp());
-        assertEquals(137608, ghoul.y());
-        assertTrue(found.get(1).player());
+        assertEquals(812, ghoul.getRef());
+        assertEquals("TYPE_NPC_GHUL01", ghoul.getTypeName());
+        assertEquals(40, ghoul.getMaxHp());
+        assertEquals(137608, ghoul.getY());
+        assertTrue(found.get(1).isPlayer());
     }
 
     @Test
@@ -44,9 +44,9 @@ class SnapshotTest {
     void attributesAreReadByKindAndInOrder() {
         Attributes attributes = new Attributes(Map.of("values", "120,80,95,10,12,30", "points", "4"));
         assertEquals(95, attributes.get(Attributes.Kind.DEXTERITY));
-        assertEquals(4, attributes.points());
+        assertEquals(4, attributes.getPoints());
         List<Attributes.Kind> order = new ArrayList<>();
-        attributes.forEach(entry -> order.add(entry.kind()));
+        attributes.forEach(entry -> order.add(entry.getKind()));
         assertEquals(List.of(Attributes.Kind.values()), order);
     }
 
@@ -63,14 +63,14 @@ class SnapshotTest {
         assertEquals(8, skills.size());
         assertEquals(7, skills.get(1));
         assertEquals(0, skills.get(40));
-        assertTrue(skills.iterator().next().level() == 12);
+        assertTrue(skills.iterator().next().getLevel() == 12);
     }
 
     @Test
     void combatArtsAreFoundByIdAndAspect() {
         CombatArts arts = new CombatArts(Map.of("n", "2", "arts", "0:67:0:13:2;1:35:4:5:0"));
-        assertEquals(15, arts.get(0).total());
-        assertEquals(1, arts.find(35, 4).index());
+        assertEquals(15, arts.get(0).getTotal());
+        assertEquals(1, arts.find(35, 4).getIndex());
         assertNull(arts.find(35, 0));
         assertNull(arts.get(9));
     }
@@ -79,17 +79,17 @@ class SnapshotTest {
     void theStatisticsPage() {
         Stats stats = new Stats(Map.of("kills", "1502", "playMillis", "3723000",
                 "sinceDeath", "600000", "survival", "3.3057851"));
-        assertEquals(1502, stats.kills());
-        assertEquals(Duration.ofSeconds(3723), stats.playTime());
-        assertEquals(Duration.ofMinutes(10), stats.sinceDeath());
-        assertEquals(3.3057851, stats.survivalBonus(), 1e-9);
+        assertEquals(1502, stats.getKills());
+        assertEquals(Duration.ofSeconds(3723), stats.getPlayTime());
+        assertEquals(Duration.ofMinutes(10), stats.getSinceDeath());
+        assertEquals(3.3057851, stats.getSurvivalBonus(), 1e-9);
     }
 
     @Test
     void resistancesAreReadPerElement() {
         Sheet sheet = new Sheet(Map.of("armor", "430", "attackSpeed", "220", "move", "164",
                 "resist", "55,70,31,12"));
-        assertEquals(430, sheet.armorPercent());
-        assertEquals(31, sheet.resistance(Sheet.Element.MAGIC));
+        assertEquals(430, sheet.getArmorPercent());
+        assertEquals(31, sheet.getResistance(Sheet.Element.MAGIC));
     }
 }

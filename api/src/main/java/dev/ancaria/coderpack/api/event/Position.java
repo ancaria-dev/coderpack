@@ -26,28 +26,28 @@ public final class Position extends Event {
     // something with them. Nothing here reads the same getter twice, once in a
     // condition and again in the arithmetic, because a coordinate is a value
     // to use rather than one to reason about. PlayerLink proves it. It calls
-    // x() and y() exactly once on every one of these, before any mod is even
+    // getX() and getY() exactly once on every one of these, before any mod is even
     // asked, so with the memo the allocation would happen on every pos.changed
     // whether a mod subscribed or not.
     //
     // Hot plus read-once is exactly where Event's memo loses. Measured on the
     // same two-field read: 24 bytes a frame this way, 232 with the memo. It
     // would buy nothing, on the hottest path in the loader. Everything else on
-    // the bus keeps num(). See the comment there.
+    // the bus keeps getNum(). See the comment there.
     /** World coordinate. The HUD shows this divided by 53.66563, truncated. */
-    public int x() {
+    public int getX() {
         return (int) once("x");
     }
 
-    public int y() {
+    public int getY() {
         return (int) once("y");
     }
 
-    public int hudX() {
+    public int getHudX() {
         return (int) once("uiX");
     }
 
-    public int hudY() {
+    public int getHudY() {
         return (int) once("uiY");
     }
 }

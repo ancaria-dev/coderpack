@@ -9,7 +9,7 @@ import javax.annotation.Nonnull;
  * The skill set differs per class and per character, so any fixed
  * index-to-name table would be wrong for most saves.
  *
- * <p>{@link #initial()} is not trustworthy at the ends of the range. The hook
+ * <p>{@link #getInitial()} is not trustworthy at the ends of the range. The hook
  * sits one instruction after the game's write, and the game's own clamp-to-0
  * and clamp-to-255 branches store the byte and jump straight to it, so the
  * previous value is reconstructed by subtraction and is wrong whenever a clamp
@@ -22,17 +22,17 @@ public final class Skill extends Amount implements Decides<Skill.Mutation> {
         super(fields, "next");
     }
 
-    public int slot() {
-        return (int) num("slot");
+    public int getSlot() {
+        return (int) getNum("slot");
     }
 
-    public long delta() {
-        return num("delta");
+    public long getDelta() {
+        return getNum("delta");
     }
 
     /** The value before this change, reconstructed rather than observed. */
-    public long previous() {
-        return num("prev");
+    public long getPrevious() {
+        return getNum("prev");
     }
 
     /** What a {@code Skill} listener returns. */
@@ -74,7 +74,7 @@ public final class Skill extends Amount implements Decides<Skill.Mutation> {
         @Override
         @Nonnull
         public Mutation last() {
-            return new Mutation(kind(), true, value());
+            return new Mutation(getKind(), true, getValue());
         }
     }
 }

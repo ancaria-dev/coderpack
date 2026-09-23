@@ -56,7 +56,7 @@ public interface Game {
      * Confirmed in game. It renames the item and redraws it, and changes
      * nothing else. A rune retyped into another rune still upgrades the combat
      * art it always did, and a potion keeps its old price. What an item
-     * <em>does</em> is {@link dev.ancaria.coderpack.api.entity.Item#modifiers()}.
+     * <em>does</em> is {@link dev.ancaria.coderpack.api.entity.Item#getModifiers()}.
      *
      * @return false when the reference resolves to nothing
      */

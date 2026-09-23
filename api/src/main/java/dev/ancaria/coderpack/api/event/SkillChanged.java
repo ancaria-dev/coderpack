@@ -12,11 +12,11 @@ public final class SkillChanged extends Event {
         super(fields);
     }
 
-    public int slot() {
-        return (int) num("slot");
+    public int getSlot() {
+        return (int) getNum("slot");
     }
 
-    public int level() {
-        return (int) num("next");
+    public int getLevel() {
+        return (int) getNum("next");
     }
 }

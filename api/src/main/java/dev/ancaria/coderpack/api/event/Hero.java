@@ -19,33 +19,33 @@ public final class Hero extends Event {
     }
 
     @Nonnull
-    public HeroClass heroClass() {
-        return HeroClass.of((int) num("cls"));
+    public HeroClass getHeroClass() {
+        return HeroClass.of((int) getNum("cls"));
     }
 
     /** The game's own name for the class, already localized where it matters. */
     @Nullable
-    public String className() {
-        return text("clsName");
+    public String getClassName() {
+        return getText("clsName");
     }
 
-    public int level() {
-        return (int) num("level");
+    public int getLevel() {
+        return (int) getNum("level");
     }
 
-    public long hp() {
-        return num("hp");
+    public long getHp() {
+        return getNum("hp");
     }
 
-    public long maxHp() {
-        return num("maxHp");
+    public long getMaxHp() {
+        return getNum("maxHp");
     }
 
-    public long gold() {
-        return num("gold");
+    public long getGold() {
+        return getNum("gold");
     }
 
-    public long exp() {
-        return num("exp");
+    public long getExp() {
+        return getNum("exp");
     }
 }

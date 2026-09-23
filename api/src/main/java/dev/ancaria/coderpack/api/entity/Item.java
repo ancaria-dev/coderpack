@@ -12,7 +12,7 @@ import javax.annotation.Nullable;
  *
  * <p>There is no display name here on purpose. Sacred composes item names from
  * affixes ("Damaged" + base + "of Oblivion"), so no single string exists to
- * read, and {@link #typeName()} is the stable identifier. It is internal and
+ * read, and {@link #getTypeName()} is the stable identifier. It is internal and
  * English ({@code TYPE_OBJECT_RING_FIRE01}), which is exactly what mod logic
  * should match on. Anything shown to a player has to be localized instead.
  */
@@ -30,39 +30,39 @@ public final class Item {
     }
 
     /** The object-manager reference. Stable for the session, not across launches. */
-    public int ref() {
+    public int getRef() {
         return number("ref");
     }
 
-    public int typeId() {
+    public int getTypeId() {
         return number("type");
     }
 
-    /** Null when the reference did not resolve. See {@link #known()}. */
+    /** Null when the reference did not resolve. See {@link #isKnown()}. */
     @Nullable
-    public String typeName() {
+    public String getTypeName() {
         return fields.get("name");
     }
 
-    public int level() {
+    public int getLevel() {
         return number("level");
     }
 
     /** Level the character needs to use it. */
-    public int minLevel() {
+    public int getMinLevel() {
         return number("min");
     }
 
-    public int attack() {
+    public int getAttack() {
         return number("atk");
     }
 
     /** The tooltip's bracketed number. The game shows the two parts added up. */
-    public int protection() {
+    public int getProtection() {
         return number("prot");
     }
 
-    public int percent() {
+    public int getPercent() {
         return number("pct");
     }
 
@@ -71,13 +71,13 @@ public final class Item {
      * so this is the number that actually belongs to the item.
      * A small red potion is 400 and a large one 1200.
      */
-    public int price() {
+    public int getPrice() {
         return number("price");
     }
 
     /** The modifier list as it travels on the wire, for copying it verbatim. */
     @Nonnull
-    public String packedModifiers() {
+    public String getPackedModifiers() {
         String packed = fields.get("mods");
         return packed == null ? "" : packed;
     }
@@ -85,7 +85,7 @@ public final class Item {
     /**
      * What the item actually DOES, as {@code id -> value}.
      *
-     * <p>Not the same thing as {@link #typeId()}, and the difference matters.
+     * <p>Not the same thing as {@link #getTypeId()}, and the difference matters.
      * The type is what an item is called and drawn as. The modifiers are its
      * effect. A rune retyped into another rune is renamed and still upgrades
      * the combat art its modifiers name, which is why swapping the type alone
@@ -96,7 +96,7 @@ public final class Item {
      * 819 mental regen, 841 life leech, 858 spell resist.
      */
     @Nonnull
-    public Map<Integer, Integer> modifiers() {
+    public Map<Integer, Integer> getModifiers() {
         if (modifiers == null) {
             modifiers = unpack(fields.get("mods"));
         }
@@ -125,13 +125,13 @@ public final class Item {
     }
 
     /** False when the ref did not resolve. The item was gone by then. */
-    public boolean known() {
+    public boolean isKnown() {
         return fields.get("name") != null;
     }
 
     @Override
     public String toString() {
-        return known() ? typeName() + " lvl " + level() : "item#" + ref();
+        return isKnown() ? getTypeName() + " lvl " + getLevel() : "item#" + getRef();
     }
 
     private int number(String key) {

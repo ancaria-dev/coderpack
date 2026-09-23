@@ -13,7 +13,7 @@ public final class Discovery extends Event {
     }
 
     /** Areas discovered so far, this one included. */
-    public long areas() {
-        return num("areas");
+    public long getAreas() {
+        return getNum("areas");
     }
 }

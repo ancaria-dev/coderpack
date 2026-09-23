@@ -128,7 +128,7 @@ class BusTest {
          */
         @Subscribe(priority = Priority.MONITOR)
         public Gold.Mutation watch(Gold event) {
-            sawValue = event.value();
+            sawValue = event.getValue();
             return Gold.Mutation.veto();
         }
     }
@@ -141,7 +141,7 @@ class BusTest {
         Gold event = gold();
         bus.dispatch(event);
         assertEquals(200, listener.sawValue, "a monitor should see what was decided");
-        assertFalse(event.vetoed(), "a monitor vetoed the event");
+        assertFalse(event.isVetoed(), "a monitor vetoed the event");
         assertEquals(Map.of("delta", "200"), Fold.verdict(event));
     }
 
@@ -151,7 +151,7 @@ class BusTest {
 
         @Subscribe
         public Gold.Mutation twice(Gold event) {
-            return Gold.Mutation.change(event.value() * 2);
+            return Gold.Mutation.change(event.getValue() * 2);
         }
     }
 
@@ -164,8 +164,8 @@ class BusTest {
         bus.dispatch(event);
         // 100 -> 200 -> 400. The old shape gave 200, because the second
         // listener read the arrived value and overwrote the first.
-        assertEquals(400, event.value());
-        assertEquals(100, event.initial());
+        assertEquals(400, event.getValue());
+        assertEquals(100, event.getInitial());
     }
 
     @Test
@@ -177,8 +177,8 @@ class BusTest {
         events.decide(Gold.class, Priority.LAST, e -> Gold.Mutation.reset());
         Gold event = gold();
         bus.dispatch(event);
-        assertFalse(event.vetoed(), "reset should lift a veto");
-        assertEquals(100, event.value(), "reset should put the arrived value back");
+        assertFalse(event.isVetoed(), "reset should lift a veto");
+        assertEquals(100, event.getValue(), "reset should put the arrived value back");
         assertEquals(Map.of(), Fold.verdict(event));
     }
 
@@ -195,11 +195,11 @@ class BusTest {
             seen.add("normal");
             return Gold.Mutation.change(999);
         });
-        events.on(Gold.class, Priority.MONITOR, e -> seen.add("monitor:" + e.value()));
+        events.on(Gold.class, Priority.MONITOR, e -> seen.add("monitor:" + e.getValue()));
         Gold event = gold();
         bus.dispatch(event);
         assertEquals(List.of("first", "monitor:200"), seen);
-        assertEquals(200, event.value());
+        assertEquals(200, event.getValue());
     }
 
     // --- the type index -------------------------------------------------
@@ -342,7 +342,7 @@ class BusTest {
         events.decide(Gold.class, Priority.MONITOR, e -> Gold.Mutation.veto());
         Gold event = gold();
         bus.dispatch(event);
-        assertFalse(event.vetoed(), "a lambda monitor vetoed the event");
+        assertFalse(event.isVetoed(), "a lambda monitor vetoed the event");
         assertEquals(Map.of("delta", "200"), Fold.verdict(event));
     }
 
@@ -391,7 +391,7 @@ class BusTest {
         final List<Long> ids = new ArrayList<>();
 
         void record(Gold event) {
-            ids.add(event.value());
+            ids.add(event.getValue());
         }
     }
 

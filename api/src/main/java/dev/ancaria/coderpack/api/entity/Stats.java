@@ -19,36 +19,36 @@ public final class Stats {
     }
 
     /** "Opponents Defeated". */
-    public long kills() {
+    public long getKills() {
         return number("kills");
     }
 
     /** How many times the hero died and came back. */
-    public long resurrections() {
+    public long getResurrections() {
         return number("resurrections");
     }
 
     /** Areas discovered. The page shows this as a share of all of them. */
-    public long discoveredAreas() {
+    public long getDiscoveredAreas() {
         return number("areas");
     }
 
     /** The number under the Game History graph. */
-    public long graphLevel() {
+    public long getGraphLevel() {
         return number("graph");
     }
 
-    public Duration playTime() {
+    public Duration getPlayTime() {
         return Duration.ofMillis(number("playMillis"));
     }
 
     /** Time since the last death, the clock the survival bonus runs on. */
-    public Duration sinceDeath() {
+    public Duration getSinceDeath() {
         return Duration.ofMillis(number("sinceDeath"));
     }
 
     /** The survival bonus in percent, 0 to 50, from the game's own curve. */
-    public double survivalBonus() {
+    public double getSurvivalBonus() {
         String raw = fields.get("survival");
         if (raw == null) {
             return 0;

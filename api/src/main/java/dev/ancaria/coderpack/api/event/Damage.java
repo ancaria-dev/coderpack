@@ -19,21 +19,21 @@ public final class Damage extends Amount implements Decides<Damage.Mutation> {
 
     /** "damage", "heal" or "clamp". */
     @Nullable
-    public String kind() {
-        return text("kind");
+    public String getKind() {
+        return getText("kind");
     }
 
-    public long damage() {
-        return num("damage");
+    public long getDamage() {
+        return getNum("damage");
     }
 
     /** HP before the blow. */
-    public long hp() {
-        return num("prev");
+    public long getHp() {
+        return getNum("prev");
     }
 
-    public long maxHp() {
-        return num("max");
+    public long getMaxHp() {
+        return getNum("max");
     }
 
     /** What a {@code Damage} listener returns. */
@@ -75,7 +75,7 @@ public final class Damage extends Amount implements Decides<Damage.Mutation> {
         @Override
         @Nonnull
         public Mutation last() {
-            return new Mutation(kind(), true, value());
+            return new Mutation(getKind(), true, getValue());
         }
     }
 }

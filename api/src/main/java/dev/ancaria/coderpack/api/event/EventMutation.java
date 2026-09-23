@@ -35,9 +35,8 @@ public abstract sealed class EventMutation
 
     private final Kind kind;
 
-    // Read by Fold, which is in this package, and by nothing else. A field
-    // rather than an accessor so that last() is free to be the modifier: in
-    // Java a field and a method may share a name.
+    // Read by Fold, which is in this package. The public reading is isLast(),
+    // which leaves last() free to be the modifier.
     final boolean last;
 
     // Package-private, and every subclass is nested in this package's events.
@@ -48,8 +47,13 @@ public abstract sealed class EventMutation
     }
 
     @Nonnull
-    public final Kind kind() {
+    public final Kind getKind() {
         return kind;
+    }
+
+    /** True when this mutation ends the chain. See {@link #last()}. */
+    public final boolean isLast() {
+        return last;
     }
 
     /**

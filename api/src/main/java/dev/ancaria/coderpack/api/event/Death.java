@@ -9,16 +9,16 @@ public final class Death extends Event {
         super(fields);
     }
 
-    public long hpBefore() {
-        return num("prev");
+    public long getHpBefore() {
+        return getNum("prev");
     }
 
-    public long maxHp() {
-        return num("max");
+    public long getMaxHp() {
+        return getNum("max");
     }
 
     /** The damage of the killing blow. */
-    public long blow() {
-        return num("blow");
+    public long getBlow() {
+        return getNum("blow");
     }
 }

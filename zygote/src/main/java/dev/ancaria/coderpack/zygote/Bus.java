@@ -31,7 +31,7 @@ import java.util.function.Function;
  * that with {@link Subscribe} or with {@code events.on(...)}. What keeps the
  * last mod to run from simply overwriting what the others decided is the fold:
  * each answer is applied before the next listener is called, so a listener
- * reading {@code value()} reads everyone before it and composes with them
+ * reading {@code getValue()} reads everyone before it and composes with them
  * instead of starting over. A veto by itself stops nothing; later listeners
  * still see the event unless they asked for {@code ignoreVetoed}.
  *
@@ -249,7 +249,7 @@ final class Bus {
     /**
      * Runs every listener that accepts this event, in priority order, folding
      * each answer in before the next one is called. That fold is what makes
-     * {@code value()} mean "with everyone before me in it", and it is why a
+     * {@code getValue()} mean "with everyone before me in it", and it is why a
      * second mod doubling the same number composes with the first instead of
      * overwriting it.
      */
@@ -273,7 +273,7 @@ final class Bus {
                 if (Fold.stopped(decision)) {
                     continue;
                 }
-                if (listener.ignoreVetoed && decision.vetoed()) {
+                if (listener.ignoreVetoed && decision.isVetoed()) {
                     continue;
                 }
             }
@@ -313,7 +313,7 @@ final class Bus {
      */
     private static void fold(Listener listener, Decision decision, EventMutation answer) {
         boolean wasOpen = !Fold.stopped(decision);
-        switch (answer.kind()) {
+        switch (answer.getKind()) {
             case RESET -> Log.warn(listener.name + " reset "
                                    + decision.getClass().getSimpleName()
                                    + ", discarding every earlier listener's work.");

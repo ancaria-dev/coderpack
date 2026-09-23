@@ -171,9 +171,9 @@ public final class Main {
         // Never null: an unmapped wire event still arrives, as an Unknown.
         Event event = Registry.build(frame);
         GAME.playerLink().observe(event);
-        if (event instanceof World world && world.phase() != World.Phase.LOADED) {
-            if (world.phase() == World.Phase.HERO_TERMINATED
-                    || world.phase() == World.Phase.DETACHED) {
+        if (event instanceof World world && world.getPhase() != World.Phase.LOADED) {
+            if (world.getPhase() == World.Phase.HERO_TERMINATED
+                    || world.getPhase() == World.Phase.DETACHED) {
                 GAME.playerLink().clear();
             }
         }

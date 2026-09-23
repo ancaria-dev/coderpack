@@ -19,7 +19,49 @@ import javax.annotation.Nullable;
 public final class Loot extends Event {
 
     /** One item of the drop. */
-    public record Drop(int ref, int typeId, String typeName) {
+    public static final class Drop {
+
+        private final int ref;
+        private final int typeId;
+        private final String typeName;
+
+        public Drop(int ref, int typeId, String typeName) {
+            this.ref = ref;
+            this.typeId = typeId;
+            this.typeName = typeName;
+        }
+
+        /** The object-manager reference of the dropped item. */
+        public int getRef() {
+            return ref;
+        }
+
+        public int getTypeId() {
+            return typeId;
+        }
+
+        /** Internal name, e.g. TYPE_OBJECT_POTION_LARGE_RED. */
+        @Nonnull
+        public String getTypeName() {
+            return typeName;
+        }
+
+        @Override
+        public boolean equals(@Nullable Object other) {
+            return other instanceof Drop that && ref == that.ref && typeId == that.typeId
+                    && typeName.equals(that.typeName);
+        }
+
+        @Override
+        public int hashCode() {
+            return (31 * ref + typeId) * 31 + typeName.hashCode();
+        }
+
+        @Override
+        @Nonnull
+        public String toString() {
+            return typeName + "#" + ref;
+        }
     }
 
     private List<Drop> items;
@@ -29,30 +71,30 @@ public final class Loot extends Event {
     }
 
     /** True for a chest, false for a creature. */
-    public boolean chest() {
-        return num("chest") == 1;
+    public boolean isChest() {
+        return getNum("chest") == 1;
     }
 
     /** The ref of the creature or chest the loot came from, 0 when unknown. */
-    public int sourceRef() {
-        return (int) num("source");
+    public int getSourceRef() {
+        return (int) getNum("source");
     }
 
-    public int sourceTypeId() {
-        return (int) num("type");
+    public int getSourceTypeId() {
+        return (int) getNum("type");
     }
 
     @Nullable
-    public String sourceTypeName() {
-        String name = text("name");
+    public String getSourceTypeName() {
+        String name = getText("name");
         return name == null || name.isEmpty() ? null : name;
     }
 
     @Nonnull
-    public List<Drop> items() {
+    public List<Drop> getItems() {
         if (items == null) {
             List<Drop> out = new ArrayList<>();
-            String packed = text("items");
+            String packed = getText("items");
             if (packed != null && !packed.isEmpty()) {
                 for (String record : packed.split(";")) {
                     String[] part = record.split(":", 3);

@@ -14,11 +14,11 @@ public final class MaxHealthChanged extends Event {
     }
 
     /** 0 on the first report of a session: there was nothing to compare with. */
-    public long previous() {
-        return num("prev");
+    public long getPrevious() {
+        return getNum("prev");
     }
 
-    public long maxHp() {
-        return num("next");
+    public long getMaxHp() {
+        return getNum("next");
     }
 }
