@@ -50,14 +50,14 @@ sacred {
 The loader supplies the API at runtime, and the verifier rejects mod JARs that
 contain loader API classes.
 
-By default, the descriptor contains `api = "[2,3)"`. This is the API contract
+By default, the descriptor contains `api = "[3,4)"`. This is the API contract
 range checked before the loader starts the mod. It is separate from the
 `dev.ancaria.coderpack:api` artifact version, currently `0.200.0`. The artifact
 version can change with each release. The contract changes only when a mod
 compiled against the previous API would break.
 
 Set `apiRange` when a mod supports a different range of contracts, for example
-`apiRange = "[2,4)"`. The range must include the contract used by the
+`apiRange = "[3,5)"`. The range must include the contract used by the
 toolchain. `loaderRange` can restrict the Sacred Mod Loader releases that may
 run the mod. If either range excludes the current version, the launcher lists
 the mod but disables its checkbox and shows the refusal reason. The JVM loader
@@ -71,36 +71,38 @@ The mod itself looks like this:
 ```java
 package com.example;
 
-import dev.ancaria.coderpack.api.Context;
 import dev.ancaria.coderpack.api.SacredMod;
 import dev.ancaria.coderpack.api.Subscribe;
 import dev.ancaria.coderpack.api.event.Gold;
 import dev.ancaria.coderpack.api.event.LevelUp;
 
-public final class DoubleGold implements SacredMod {
-
-    private Context context;
+public final class DoubleGold extends SacredMod {
 
     @Override
-    public void onLoad(Context context) {
-        this.context = context;
-        context.events().register(this);
+    public void onLoad() {
+        getContext().getRegistry().getEventRegistry().register(this);
     }
 
     @Subscribe
     public void onLevelUp(LevelUp event) {
-        context.log("level " + event.level());
+        getContext().log("level " + event.getLevel());
     }
 
     @Subscribe
     public Gold.Mutation onGold(Gold event) {
-        if (event.spending()) {
+        if (event.isSpending()) {
             return Gold.Mutation.none();
         }
-        return Gold.Mutation.change(event.value() * 2);   // decided before the game stores it
+        return Gold.Mutation.change(event.getValue() * 2);   // decided before the game stores it
     }
 }
 ```
+
+The entry point extends `SacredMod` and keeps a public no-argument
+constructor. The loader creates it and hands it its `Context` while doing so,
+so `getContext()` already works in a field initialiser. `onUnload()` is the
+last call a mod gets, when it is unregistered or the loader shuts down, and
+comes after its listeners are already off.
 
 A supported listener method is public and takes exactly one event parameter.
 The parameter type selects the event, so there is no separate event name to
@@ -108,13 +110,18 @@ maintain. The return type says what the method may do. `void` only observes.
 A method that decides returns that event’s own `Mutation`: `none()`,
 `reset()`, `veto()`, or a new value such as `change(value)`. Events are read-only, so returning a
 mutation is the only way to change one. For dynamic registration,
-`context.events().on(...)` registers an observer and `decide(...)` a decider.
-Both return a `Handle` that can unregister the listener.
+`getContext().getRegistry().getEventRegistry().on(...)` registers an observer
+and `decide(...)` a decider. Both return a `Handle` that can unregister the
+listener and says which mod registered it, for which event and at which
+priority; `getEvents()` lists every mod's handles. `getModRegistry()`, the
+other half of the registry, lists the loaded mods, loads one more jar with
+`register(path)` and takes a mod out with `unregister(id)`, listeners and
+all.
 
 The `priority` value on `@Subscribe` controls dispatch order: `FIRST`, `NORMAL` by default,
 `LAST`, then `MONITOR`. Registration order decides the order within one
 priority. The loader folds each answer in before the next listener runs, so
-`value()` includes every earlier decision. A veto does not stop dispatch. With
+`getValue()` includes every earlier decision. A veto does not stop dispatch. With
 `ignoreVetoed = true`, a listener is skipped if an earlier listener vetoed the
 event. A `MONITOR` listener sees the final decision and must return `void`. The
 mod linter rejects a `MONITOR` method that returns a mutation, and the loader
@@ -139,21 +146,25 @@ The hook position determines which events are decidable. A veto works only when
 the hook runs before the game writes the value. [docs/EVENTS.md](docs/EVENTS.md)
 describes the contract in full.
 
-Use `context.game()` for direct operations. `player()` returns the hero handle.
-Its level, HP, gold, experience and position come from the latest state
-Coderpack observed and cost nothing to read, and it provides `teleport`, `gold`,
-`hp`, `addExp` and `kill`. `attributes()`, `skills()`, `combatArts()`,
-`stats()` (the journal's Statistics page) and `sheet()` (armour, attack and
-movement speed, resistances) ask the game on every call and return a
-snapshot; the first three are collections with `get` and `forEach`, and
-`attribute`, `skill` and `combatArt` write back. `world()` lists the
-creatures the game holds, near a point or all of them, reads one by its ref,
-sets its HP or kills it, and says which region and sector the hero last
-entered. The game interface also provides `uiString`, `typeName`, `typeId`,
-`types`, `retype`, and `reshape`. `retype` permanently changes an item’s type
-label and appearance, but keeps its original behavior and modifiers.
-`reshape` makes an item a copy of another, modifiers included.
-Commands wait up to two seconds for an agent reply.
+Use `getContext().getGame()` for direct operations.
+`getWorld().getEntityRegistry().getPlayer()` returns the hero handle. Its
+level, HP, gold, experience and position come from the latest state Coderpack
+observed and cost nothing to read, and it provides `teleport`, `setGold`,
+`setHp`, `addExp` and `kill`. `getAttributes()`, `getSkills()`,
+`getCombatArts()`, `getStats()` (the journal's Statistics page) and
+`getSheet()` (armour, attack and movement speed, resistances) ask the game on
+every call and return a snapshot; the first three are collections with `get`
+and `forEach`, and `setAttribute`, `setSkill` and `setCombatArt` write back.
+The same `EntityRegistry` lists the creatures the game holds, near a point or
+all of them, and reads one by its ref. `getWorld()` itself sets a creature's
+HP or kills it, and says which region and sector the hero last entered.
+`getTypeRegistry()` provides `getTypeName`, `getTypeId`, `types`, `retype`,
+and `reshape`. `retype` permanently changes an item’s type label and
+appearance, but keeps its original behavior and modifiers. `reshape` makes an
+item a copy of another, modifiers included. `getUiString` reads the game's
+localized text, `getConsole().print(text)` writes a line into the in-game
+console, and `getDirectory()` is the game folder. Every collection the API
+returns is unmodifiable. Commands wait up to two seconds for an agent reply.
 
 Listeners on a decidable event run while the game thread is stopped, so keep
 them short. The host’s deadline is 250 ms, checked every 125 ms. When it
@@ -161,8 +172,13 @@ passes, the host lets the original value through.
 
 ### Logging
 
-`context.log` writes to the loader process’s stderr, prefixed with the mod id,
-and the host prints the line as it is. Printing any other way is fine as well:
+`getContext().log` appends a line to `<Sacred Gold>/logs/mods.log`, one file
+for every mod: `[2026-09-23 14:05:31.042] [double-gold]: level 12`. It never
+waits for the disk. A loader thread writes the lines in batches, so it is safe
+on a listener with the game stopped behind it and from a mod's own threads.
+`getContext().print` puts the same line on the host's console instead.
+
+Printing any other way is fine as well:
 protocol frames travel on named pipes of their own, and the JVM’s own stdout
 and stderr belong to the mods and reach the host’s console. Log4j2, Logback,
 slf4j-simple and `java.util.logging` all work with nothing configured.
@@ -171,8 +187,8 @@ The loader still points `System.out` at stderr before the first mod loads,
 which is why a plain `println` turns up there. That guards the case where the
 host offers no pipe, and it changes nothing for a mod.
 
-`context.log` is the better habit even so: with five mods installed, it is the
-only one of these that says which mod spoke.
+`log` and `print` are the better habit even so: with five mods installed,
+they are the only ones that say which mod spoke.
 
 ### The same mod in Kotlin
 

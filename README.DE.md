@@ -53,15 +53,15 @@ Mods in derselben JAR-Datei. `apiVersion` fügt
 die API bereits im Classpath bereitstellt. Die Prüfung weist eine Mod-JAR ab,
 wenn sie trotzdem Klassen der Loader-API enthält.
 
-Im Deskriptor steht außerdem `api = "[2,3)"`. Das Feld wird vom Plugin erzeugt und
+Im Deskriptor steht außerdem `api = "[3,4)"`. Das Feld wird vom Plugin erzeugt und
 bezeichnet den API-Vertrag, nicht die Artefaktversion. Das Artefakt
 `dev.ancaria.coderpack:api` hat die Version 0.200.0 und ändert sich mit einem
-Release. `Api.VERSION` steht derzeit auf `2` und wird erst erhöht, wenn ein gegen
+Release. `Api.VERSION` steht derzeit auf `3` und wird erst erhöht, wenn ein gegen
 den bisherigen Vertrag kompilierter Mod mit der neuen API nicht mehr
 funktioniert.
 
-Der Loader wertet `api` als Versionsbereich aus. Der Wert `"2"` meint exakt
-Vertrag 2. Bereiche wie `"[2,3)"` sind ebenfalls zulässig. Fehlt das Feld, ist
+Der Loader wertet `api` als Versionsbereich aus. Der Wert `"3"` meint exakt
+Vertrag 3. Bereiche wie `"[3,4)"` sind ebenfalls zulässig. Fehlt das Feld, ist
 der Bereich ungültig oder umfasst er `Api.VERSION` nicht, verweigert der Loader
 den Start und protokolliert den Grund. Mit `apiRange` kann ein Mod einen anderen
 Bereich angeben, solange er den Vertrag dieses Toolchains enthält. `loaderRange`
@@ -80,36 +80,38 @@ Der Mod selbst sieht so aus:
 ```java
 package com.example;
 
-import dev.ancaria.coderpack.api.Context;
 import dev.ancaria.coderpack.api.SacredMod;
 import dev.ancaria.coderpack.api.Subscribe;
 import dev.ancaria.coderpack.api.event.Gold;
 import dev.ancaria.coderpack.api.event.LevelUp;
 
-public final class DoubleGold implements SacredMod {
-
-    private Context context;
+public final class DoubleGold extends SacredMod {
 
     @Override
-    public void onLoad(Context context) {
-        this.context = context;
-        context.events().register(this);
+    public void onLoad() {
+        getContext().getRegistry().getEventRegistry().register(this);
     }
 
     @Subscribe
     public void onLevelUp(LevelUp event) {
-        context.log("level " + event.level());
+        getContext().log("level " + event.getLevel());
     }
 
     @Subscribe
     public Gold.Mutation onGold(Gold event) {
-        if (event.spending()) {
+        if (event.isSpending()) {
             return Gold.Mutation.none();
         }
-        return Gold.Mutation.change(event.value() * 2);   // entschieden, bevor das Spiel schreibt
+        return Gold.Mutation.change(event.getValue() * 2);   // entschieden, bevor das Spiel schreibt
     }
 }
 ```
+
+Der Einstiegspunkt erbt von `SacredMod` und behält einen öffentlichen
+Konstruktor ohne Argumente. Der Loader erzeugt ihn und übergibt ihm dabei
+seinen `Context`, sodass `getContext()` schon in einem Feldinitialisierer
+funktioniert. `onUnload()` ist der letzte Aufruf, den ein Mod bekommt, wenn er
+abgemeldet wird oder der Loader endet; seine Listener sind dann schon entfernt.
 
 Eine unterstützte Listener-Methode mit `@Subscribe` ist öffentlich und nimmt
 genau ein Ereignis entgegen. Der Parametertyp bestimmt das Abonnement. Ein
@@ -118,14 +120,20 @@ legt fest, was die Methode darf. Mit `void` beobachtet sie nur. Eine Methode,
 die entscheidet, gibt die `Mutation` ihres Ereignisses zurück: `none()`,
 `reset()`, `veto()` oder einen neuen Wert wie `change(value)`. Ereignisse sind
 nur lesbar, eine Mutation zurückzugeben ist der einzige Weg, eines zu ändern.
-Für dynamische Registrierung gibt es `context.events().on(...)` für einen
-Beobachter und `decide(...)` für einen entscheidenden Listener. Beide geben ein
-`Handle` zurück, mit dem sich der Listener wieder entfernen lässt.
+Für dynamische Registrierung gibt es
+`getContext().getRegistry().getEventRegistry().on(...)` für einen Beobachter
+und `decide(...)` für einen entscheidenden Listener. Beide geben ein `Handle`
+zurück, mit dem sich der Listener wieder entfernen lässt und das nennt, welcher
+Mod ihn für welches Ereignis mit welcher Priorität registriert hat;
+`getEvents()` listet die Listener aller Mods. Die andere Hälfte der Registry,
+`getModRegistry()`, listet die geladenen Mods, lädt mit `register(path)` ein
+weiteres JAR und nimmt mit `unregister(id)` einen Mod samt allen Listenern
+heraus.
 
 `@Subscribe` regelt auch die Reihenfolge. `priority` legt die Stufe fest:
 `FIRST`, `NORMAL` als Standard, `LAST` und anschließend `MONITOR`. Innerhalb
 einer Stufe gilt die Registrierungsreihenfolge. Der Loader verrechnet jede
-Antwort, bevor der nächste Listener läuft, daher enthält `value()` alle
+Antwort, bevor der nächste Listener läuft, daher enthält `getValue()` alle
 vorherigen Entscheidungen. Ein Veto beendet die Auslieferung nicht. Mit
 `ignoreVetoed = true` überspringt der Loader den Listener, sobald ein früherer
 ein Veto eingelegt hat. Ohne diese Option erhält er das Ereignis weiterhin, was
@@ -158,35 +166,44 @@ Für Ereignisse ohne eigenen API-Typ gibt es `Unknown`. Es enthält den Namen au
 dem Protokoll und die unverarbeiteten Felder, sodass Listener auf `Event` auch
 neue Ereignisse sehen, bevor dafür eine eigene Klasse in der API existiert.
 
-Die Gegenrichtung läuft über `context.game()`. `player()` liefert den Helden.
-Stufe, Lebenspunkte, Gold, Erfahrung und Position stammen aus dem zuletzt von
+Die Gegenrichtung läuft über `getContext().getGame()`.
+`getWorld().getEntityRegistry().getPlayer()` liefert den Helden. Stufe,
+Lebenspunkte, Gold, Erfahrung und Position stammen aus dem zuletzt von
 Coderpack beobachteten Zustand und kosten beim Lesen nichts. Dazu kommen die
-Aktionen `teleport`, `gold`, `hp`, `addExp` und `kill`. `attributes()`,
-`skills()`, `combatArts()`, `stats()` (die Statistikseite des Tagebuchs) und
-`sheet()` (Rüstung, Angriffs- und Laufgeschwindigkeit, Widerstände) fragen
-bei jedem Aufruf das Spiel und liefern einen Schnappschuss. Die ersten drei
-sind Sammlungen mit `get` und `forEach`; `attribute`, `skill` und
-`combatArt` schreiben zurück. `world()` zählt die Kreaturen auf, die das Spiel
-hält, alle oder in der Nähe eines Punkts, liest eine über ihre Ref, setzt ihre
-Lebenspunkte oder tötet sie und nennt Region und Sektor, die der Held zuletzt
-betreten hat.
-`uiString`, `typeName`, `typeId` und `types` greifen auf die
-Nachschlagetabellen des Spiels zu. Mit `retype` lässt sich die Typbezeichnung
+Aktionen `teleport`, `setGold`, `setHp`, `addExp` und `kill`.
+`getAttributes()`, `getSkills()`, `getCombatArts()`, `getStats()` (die
+Statistikseite des Tagebuchs) und `getSheet()` (Rüstung, Angriffs- und
+Laufgeschwindigkeit, Widerstände) fragen bei jedem Aufruf das Spiel und liefern
+einen Schnappschuss. Die ersten drei sind Sammlungen mit `get` und `forEach`;
+`setAttribute`, `setSkill` und `setCombatArt` schreiben zurück. Dieselbe
+`EntityRegistry` zählt die Kreaturen auf, die das Spiel hält, alle oder in der
+Nähe eines Punkts, und liest eine über ihre Ref. `getWorld()` selbst setzt die
+Lebenspunkte einer Kreatur oder tötet sie und nennt Region und Sektor, die der
+Held zuletzt betreten hat. `getTypeRegistry()` bietet `getTypeName`,
+`getTypeId` und `types` für die Nachschlagetabellen des Spiels. Mit `retype` lässt sich die Typbezeichnung
 eines Gegenstands dauerhaft ändern. Name und Darstellung ändern sich, das
 ursprüngliche Verhalten und die Modifikatoren bleiben erhalten. `reshape` macht
-einen Gegenstand zur Kopie eines anderen, samt Modifikatoren.
+einen Gegenstand zur Kopie eines anderen, samt Modifikatoren. `getUiString`
+liest lokalisierten Text des Spiels, `getConsole().print(text)` schreibt eine
+Zeile in die Konsole im Spiel, und `getDirectory()` ist der Spielordner. Keine
+Sammlung, die die API zurückgibt, lässt sich verändern.
 
 Während die Listener eines entscheidbaren Ereignisses laufen, wartet der
 Spiel-Thread auf die Antwort. Solche Listener müssen kurz bleiben. Die Frist
 des Hosts beträgt 250 ms und wird alle 125 ms geprüft. Ist sie abgelaufen,
-lässt der Host den ursprünglichen Wert passieren. Aufrufe über `context.game()` warten
+lässt der Host den ursprünglichen Wert passieren. Aufrufe über `getContext().getGame()` warten
 höchstens zwei Sekunden auf eine Antwort des Agents.
 
 ### Protokollierung
 
-`context.log` schreibt mit der Mod-Id als Präfix auf stderr des
-Loader-Prozesses, und der Host gibt die Zeile unverändert aus. Jede andere Art
-zu schreiben geht genauso: Die Protokollrahmen laufen über eigene benannte
+`getContext().log` hängt eine Zeile an `<Sacred Gold>/logs/mods.log` an, eine
+Datei für alle Mods: `[2026-09-23 14:05:31.042] [double-gold]: level 12`. Auf
+die Platte wartet der Aufruf nie. Ein Thread des Loaders schreibt die Zeilen
+gebündelt, daher ist er in einem Listener, während das Spiel wartet, ebenso
+sicher wie aus eigenen Threads eines Mods. `getContext().print` gibt dieselbe
+Zeile stattdessen auf der Konsole des Hosts aus.
+
+Jede andere Art zu schreiben geht genauso: Die Protokollrahmen laufen über eigene benannte
 Pipes, und stdout und stderr der JVM gehören den Mods und landen auf der
 Konsole des Hosts. Log4j2, Logback, slf4j-simple und `java.util.logging`
 funktionieren alle ohne jede Einstellung.
@@ -195,8 +212,8 @@ Der Loader leitet `System.out` trotzdem auf stderr um, bevor der erste Mod
 geladen wird, weshalb ein einfaches `println` dort auftaucht. Das sichert den
 Fall ab, dass der Host keine Pipe anbietet, und ändert für einen Mod nichts.
 
-`context.log` bleibt dennoch die bessere Gewohnheit: Bei fünf installierten
-Mods sagt nur diese Zeile, welcher Mod gesprochen hat.
+`log` und `print` bleiben dennoch die bessere Gewohnheit: Bei fünf
+installierten Mods sagen nur sie, welcher Mod gesprochen hat.
 
 ### Derselbe Mod in Kotlin
 
