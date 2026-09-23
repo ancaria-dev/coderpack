@@ -6,7 +6,7 @@
 ![Gradle](https://img.shields.io/badge/Gradle-9.7.1-02303A?style=for-the-badge&logo=gradle&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-agent-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Version](https://img.shields.io/badge/version-0.102.0-4B5563?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-0.200.0-4B5563?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-4B5563?style=for-the-badge)
 ![Sacred](https://img.shields.io/badge/Sacred-Community-8B1A1A?style=for-the-badge&labelColor=1C1410)
 
@@ -39,7 +39,7 @@ sacred {
     displayName = "Double Gold"
     description = "Twice the loot, same purse"
     entrypoint = "com.example.DoubleGold"
-    apiVersion = "0.102.0"
+    apiVersion = "0.200.0"
     author("you")
 }
 ```
@@ -55,7 +55,7 @@ wenn sie trotzdem Klassen der Loader-API enthält.
 
 Im Deskriptor steht außerdem `api = "[2,3)"`. Das Feld wird vom Plugin erzeugt und
 bezeichnet den API-Vertrag, nicht die Artefaktversion. Das Artefakt
-`dev.ancaria.coderpack:api` hat die Version 0.102.0 und ändert sich mit einem
+`dev.ancaria.coderpack:api` hat die Version 0.200.0 und ändert sich mit einem
 Release. `Api.VERSION` steht derzeit auf `2` und wird erst erhöht, wenn ein gegen
 den bisherigen Vertrag kompilierter Mod mit der neuen API nicht mehr
 funktioniert.
@@ -208,7 +208,7 @@ Standardbibliothek, die er ohnehin trägt.
 
 ```kotlin
 dependencies {
-    implementation("dev.ancaria.coderpack:api-kotlin:0.102.0")
+    implementation("dev.ancaria.coderpack:api-kotlin:0.200.0")
 }
 ```
 
