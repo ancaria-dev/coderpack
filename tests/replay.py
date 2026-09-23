@@ -64,6 +64,7 @@ TYPES = {
 }
 
 SCRIPT = [
+    ("EVT 0 agent.ready base=0x400000", None),
     ("EVT 0 session.world_loaded", None),
     # A Seraphim, so a Daemon rune below is somebody else's.
     ("EVT 0 hero.captured cls=1 clsName=Seraphim level=10 hp=100 maxHp=100 "
@@ -113,6 +114,14 @@ SCRIPT = [
     ("EVT 0 entity.death type=50 name=TYPE_NPC_GHUL01 level=5 prev=10 next=0 "
      "max=10 damage=10 kind=lethal", None),
     ("EVT 0 level.changed prev=10 next=11", None),
+    ("EVT 0 gold.changed next=150 delta=100", None),
+    ("EVT 0 world.region_enter id=1999 from=1779", None),
+    ("EVT 0 entity.spawn ref=812 type=50 name=TYPE_NPC_GHUL01 level=5 hp=10 "
+     "maxHp=10 x=222900 y=137600 player=0", None),
+    ("EVT 0 journal.kill total=1502 type=50 name=TYPE_NPC_GHUL01 a2=5", None),
+    # No mod here decides combat arts, so the game's own level stands.
+    ("ASK 10 art.raise index=3 id=67 aspect=0 prev=13 next=14 step=1",
+     "END 10 ok=1"),
     # An event no SDK class covers: it must still reach the mods.
     ("EVT 0 weather.rain_start intensity=3", None),
     ("EVT 0 session.hero_terminated", None),
@@ -120,10 +129,11 @@ SCRIPT = [
 
 # One trace line per frame above, in order.
 TRACED = [
-    "World.LOADED", "Hero", "Damage", "Gold", "Pickup", "Pickup", "Pickup",
+    "World.ATTACHED", "World.LOADED", "Hero", "Damage", "Gold", "Pickup", "Pickup", "Pickup",
     "Pickup", "Pickup", "Pickup", "Pickup", "Stored", "Equip", "Moved",
     "Position", "MobDeath",
-    "LevelUp", "weather.rain_start", "World.HERO_TERMINATED",
+    "LevelUp", "GoldChanged", "Region", "Spawn", "Kill", "CombatArt",
+    "weather.rain_start", "World.HERO_TERMINATED",
 ]
 
 
