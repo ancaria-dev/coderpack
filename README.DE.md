@@ -14,22 +14,28 @@
 
 [Русский](README.md) · [English](README.EN.md)
 
-Java-Mods für Sacred Gold, das Action-RPG aus dem Jahr 2004.
+Die API, gegen die du Mods für Sacred Gold schreibst, und der Loader, der sie
+ausführt.
 
-Coderpack klinkt sich in das laufende Spiel ein und leitet aus dem Spielcode
-Ereignisse ab. Ein Mod abonniert nur die Ereignisse, die er braucht. Einige
-treten auf, bevor das Spiel einen Wert schreibt. Dort kann der Mod den Wert
-ändern oder per Veto verhindern. Die Dateien im Spielordner bleiben
-unverändert. Beim Beenden des Spiels verschwinden auch die Hooks.
+Coderpack beobachtet das laufende Spiel und macht aus dem, was darin passiert,
+Ereignisse: aufgehobenes Gold, ausgeteilter Schaden, ein neuer Level. Dein Mod
+abonniert die Ereignisse, die ihn interessieren. Manche kommen, bevor das Spiel
+einen Wert speichert. Dann kann dein Mod ihn ändern oder verhindern.
 
-## Mod schreiben
+Die Spieldateien bleiben unangetastet. Alle Hooks leben im Arbeitsspeicher und
+verschwinden, sobald das Spiel beendet wird.
 
-Ein Mod ist eine JAR-Datei in `<Sacred Gold>/mods`. Gebaut wird sie mit dem
-Gradle-Plugin aus [ancaria-dev/build](https://github.com/ancaria-dev/build):
+## Erste Schritte
+
+Ein Mod ist ein JAR in `<Sacred Gold>/mods`. Gebaut wird er vom Gradle-Plugin
+aus [build](https://github.com/ancaria-dev/build). Am schnellsten kommst du mit
+dem [Plugin für IntelliJ IDEA](https://github.com/ancaria-dev/idea) oder mit
+`coderpack new my-mod` zu einem fertigen Projekt. Von Hand sieht das
+Build-Skript so aus:
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.101.0"
+    id("dev.ancaria.coderpack") version "0.200.0"
 }
 
 version = "1.0.0"
@@ -44,38 +50,11 @@ sacred {
 }
 ```
 
-`gradlew assembleSacredMod` schreibt die geprüfte Fat JAR nach
-`build/sacred-mod`. Aus dem `sacred`-Block erzeugt das Plugin
-`META-INF/declaration.toml`. Diese Datei liest der Loader, bevor er Code aus dem
-Mod ausführt. Die Runtime-Abhängigkeiten landen zusammen mit den Klassen des
-Mods in derselben JAR-Datei. `apiVersion` fügt
-`dev.ancaria.coderpack:api` als **compileOnly**-Abhängigkeit hinzu, da der Loader
-die API bereits im Classpath bereitstellt. Die Prüfung weist eine Mod-JAR ab,
-wenn sie trotzdem Klassen der Loader-API enthält.
+`apiVersion` fügt `dev.ancaria.coderpack:api` als `compileOnly`-Abhängigkeit
+hinzu. Zur Laufzeit liefert der Loader die API, in deinem JAR hat sie also
+nichts zu suchen.
 
-Im Deskriptor steht außerdem `api = "[3,4)"`. Das Feld wird vom Plugin erzeugt und
-bezeichnet den API-Vertrag, nicht die Artefaktversion. Das Artefakt
-`dev.ancaria.coderpack:api` hat die Version 0.200.0 und ändert sich mit einem
-Release. `Api.VERSION` steht derzeit auf `3` und wird erst erhöht, wenn ein gegen
-den bisherigen Vertrag kompilierter Mod mit der neuen API nicht mehr
-funktioniert.
-
-Der Loader wertet `api` als Versionsbereich aus. Der Wert `"3"` meint exakt
-Vertrag 3. Bereiche wie `"[3,4)"` sind ebenfalls zulässig. Fehlt das Feld, ist
-der Bereich ungültig oder umfasst er `Api.VERSION` nicht, verweigert der Loader
-den Start und protokolliert den Grund. Mit `apiRange` kann ein Mod einen anderen
-Bereich angeben, solange er den Vertrag dieses Toolchains enthält. `loaderRange`
-setzt die optionale Loader-Grenze. Ein ungültiger Wert wird abgewiesen.
-Optional kann `loader` einen Bereich von
-Sacred-Mod-Loader-Versionen angeben, etwa `"[0.1.20,)"`. Ohne dieses Feld stellt
-der Mod keine Anforderung an die Loader-Version. Der Launcher führt einen
-abgewiesenen Mod weiterhin auf, deaktiviert und mit einem roten Hinweis unter
-der Beschreibung. Der JVM-Loader prüft beide Bereiche vor dem ersten Aufruf von
-Mod-Code und protokolliert genau eine Ablehnung. Fehlt
-`<Sacred Gold>/launcher/VERSION`, überspringt er die Prüfung des
-`loader`-Bereichs.
-
-Der Mod selbst sieht so aus:
+Jetzt der Mod selbst:
 
 ```java
 package com.example;
@@ -102,126 +81,149 @@ public final class DoubleGold extends SacredMod {
         if (event.isSpending()) {
             return Gold.Mutation.none();
         }
-        return Gold.Mutation.change(event.getValue() * 2);   // entschieden, bevor das Spiel schreibt
+        return Gold.Mutation.change(event.getValue() * 2);   // decided before the game stores it
     }
 }
 ```
 
-Der Einstiegspunkt erbt von `SacredMod` und behält einen öffentlichen
-Konstruktor ohne Argumente. Der Loader erzeugt ihn und übergibt ihm dabei
-seinen `Context`, sodass `getContext()` schon in einem Feldinitialisierer
-funktioniert. `onUnload()` ist der letzte Aufruf, den ein Mod bekommt, wenn er
-abgemeldet wird oder der Loader endet; seine Listener sind dann schon entfernt.
+`gradlew assembleSacredMod` legt das fertige JAR in `build/sacred-mod` ab. Das
+Plugin erzeugt `META-INF/declaration.toml` aus dem Block `sacred`, packt die
+Laufzeitabhängigkeiten deines Mods ins JAR und lehnt ein JAR ab, das Klassen
+der Loader-API enthält.
 
-Eine unterstützte Listener-Methode mit `@Subscribe` ist öffentlich und nimmt
-genau ein Ereignis entgegen. Der Parametertyp bestimmt das Abonnement. Ein
-separater Ereignisname muss daher nirgends gepflegt werden. Der Rückgabetyp
-legt fest, was die Methode darf. Mit `void` beobachtet sie nur. Eine Methode,
-die entscheidet, gibt die `Mutation` ihres Ereignisses zurück: `none()`,
-`reset()`, `veto()` oder einen neuen Wert wie `change(value)`. Ereignisse sind
-nur lesbar, eine Mutation zurückzugeben ist der einzige Weg, eines zu ändern.
-Für dynamische Registrierung gibt es
-`getContext().getRegistry().getEventRegistry().on(...)` für einen Beobachter
-und `decide(...)` für einen entscheidenden Listener. Beide geben ein `Handle`
-zurück, mit dem sich der Listener wieder entfernen lässt und das nennt, welcher
-Mod ihn für welches Ereignis mit welcher Priorität registriert hat;
-`getEvents()` listet die Listener aller Mods. Die andere Hälfte der Registry,
-`getModRegistry()`, listet die geladenen Mods, lädt mit `register(path)` ein
-weiteres JAR und nimmt mit `unregister(id)` einen Mod samt allen Listenern
-heraus.
+## Lebenszyklus eines Mods
 
-`@Subscribe` regelt auch die Reihenfolge. `priority` legt die Stufe fest:
-`FIRST`, `NORMAL` als Standard, `LAST` und anschließend `MONITOR`. Innerhalb
-einer Stufe gilt die Registrierungsreihenfolge. Der Loader verrechnet jede
-Antwort, bevor der nächste Listener läuft, daher enthält `getValue()` alle
-vorherigen Entscheidungen. Ein Veto beendet die Auslieferung nicht. Mit
-`ignoreVetoed = true` überspringt der Loader den Listener, sobald ein früherer
-ein Veto eingelegt hat. Ohne diese Option erhält er das Ereignis weiterhin, was
-etwa zum Rückgängigmachen eigener Nebenwirkungen nötig sein kann.
+Dein Einstiegspunkt erbt von `SacredMod` und behält einen öffentlichen
+Konstruktor ohne Argumente. Der Loader erzeugt die Instanz und übergibt ihr im
+selben Schritt einen `Context`. `getContext()` funktioniert also schon in einem
+Feldinitialisierer.
 
-`MONITOR` dient nur zur Beobachtung. Der Listener sieht das Ergebnis aller
-vorherigen Entscheidungen und muss `void` zurückgeben. Der Mod-Linter weist
-eine `MONITOR`-Methode ab, die eine Mutation zurückgibt, und der Loader
-verwirft eine solche Mutation mit einer Warnung.
+In `onLoad()` registrierst du deine Listener. `onUnload()` ist der letzte
+Aufruf, den dein Mod bekommt – wenn er entfernt wird oder der Loader sich
+beendet. Seine Listener sind dann schon abgemeldet.
 
-Acht Ereignisse lassen sich entscheiden: `Gold`, `Experience`,
-`Damage`, `Skill`, `Attribute`, `CombatArt`, `Pickup` und `Console`, dessen
-Veto eine Konsolenzeile als Befehl eines Mods übernimmt. Der Rest meldet
-etwas, das schon passiert ist, und ist nur lesbar:
+## Listener
+
+`register(this)` macht jede öffentliche Methode mit `@Subscribe` und genau
+einem Ereignisparameter zum Listener. Der Parametertyp bestimmt das Ereignis,
+einen Ereignisnamen musst du also nicht pflegen.
+
+Der Rückgabetyp legt fest, was die Methode darf:
+
+- `void` beobachtet nur.
+- Die `Mutation` des Ereignisses entscheidet: `none()`, `reset()`, `veto()`
+  oder ein neuer Wert wie `change(value)`.
+
+Ereignisse sind schreibgeschützt. Ändern kannst du eins nur über die
+zurückgegebene Mutation.
+
+Es geht auch ohne Annotationen. An
+`getContext().getRegistry().getEventRegistry()` fügt `on(...)` einen
+Beobachter hinzu und `decide(...)` einen Entscheider. Beide geben ein `Handle`
+zurück. Damit meldest du den Listener wieder ab, und es verrät dir, welcher Mod
+ihn registriert hat, für welches Ereignis und mit welcher Priorität.
+`getEvents()` listet die Handles aller Mods auf.
+
+Die andere Hälfte der Registry ist `getModRegistry()`. Sie listet die geladenen
+Mods auf, lädt mit `register(path)` ein weiteres JAR und entfernt mit
+`unregister(id)` einen Mod samt seinen Listenern.
+
+### Reihenfolge und Veto
+
+`priority` an `@Subscribe` bestimmt die Reihenfolge: `FIRST`, `NORMAL`
+(Standard), `LAST`, dann `MONITOR`. Innerhalb einer Priorität zählt die
+Reihenfolge der Registrierung. Der Loader verrechnet jede Antwort, bevor der
+nächste Listener läuft, `getValue()` enthält also schon alle früheren
+Entscheidungen.
+
+Ein Veto stoppt die Verteilung nicht. Ein Listener mit `ignoreVetoed = true`
+wird übersprungen, sobald ein früherer ein Veto eingelegt hat. Ein
+`MONITOR`-Listener sieht die endgültige Entscheidung und muss `void`
+zurückgeben. Der Mod-Linter lehnt eine `MONITOR`-Methode mit Mutation ab, und
+der Loader verwirft eine solche Mutation mit einer Warnung.
+
+Listener auf ein entscheidbares Ereignis laufen, während der Spielthread
+wartet. Halt sie also kurz. Die Frist des Hosts beträgt 250 ms, geprüft wird
+alle 125 ms. Ist sie abgelaufen, lässt der Host den ursprünglichen Wert durch.
+
+## Ereignisse
+
+Acht Ereignisse lassen sich entscheiden: `Gold`, `Experience`, `Damage`,
+`Skill`, `Attribute`, `CombatArt`, `Pickup` und `Console`. Ein Veto auf
+`Console` übernimmt die eingetippte Zeile als eigenen Befehl deines Mods.
+
+Die übrigen melden etwas, das schon passiert ist:
 
 - Held und Sitzung: `Hero`, `World`, `Save`, `Load`, `Position`, `LevelUp`,
-  `Death`, `NearDeath`;
-- was aus einer Entscheidung wurde: `HealthChanged`, `MaxHealthChanged`,
+  `Death`, `NearDeath`.
+- Das Ergebnis einer Entscheidung: `HealthChanged`, `MaxHealthChanged`,
   `GoldChanged`, `ExperienceChanged`, `SkillChanged`, `AttributeChanged`,
-  `SkillPointsChanged`, `AttributePointsChanged`, `CombatArtChanged`;
-- die Welt: `Region`, `Sector`, `Spawn`, `Despawn`, `MobHit`, `MobDeath`;
-- Tagebuch und Quests: `Kill`, `Resurrection`, `Discovery`, `Quest`;
+  `SkillPointsChanged`, `AttributePointsChanged`, `CombatArtChanged`.
+- Die Welt: `Region`, `Sector`, `Spawn`, `Despawn`, `MobHit`, `MobDeath`.
+- Tagebuch und Quests: `Kill`, `Resurrection`, `Discovery`, `Quest`.
 - Gegenstände: `Loot`, `Drink`, `Trade`, `Moved`, `Equip`, `Stored`.
+- `Unknown` für ein Protokollereignis, für das es noch keinen Typ gibt.
 
-Was wohin gehört, ergibt sich aus der Stelle des Hooks. Ein Veto ist nur
-möglich, wenn der Hook vor dem Schreibzugriff sitzt und Coderpack den
-betreffenden Wert ändern kann. Den vollständigen Vertrag beschreibt [docs/EVENTS.md](docs/EVENTS.md).
+Ob sich ein Ereignis entscheiden lässt, hängt davon ab, wo sein Hook sitzt. Ein
+Veto wirkt nur, wenn der Hook läuft, bevor das Spiel den Wert schreibt.
+[docs/EVENTS.md](docs/EVENTS.md) beschreibt den Vertrag vollständig.
 
-Für Ereignisse ohne eigenen API-Typ gibt es `Unknown`. Es enthält den Namen aus
-dem Protokoll und die unverarbeiteten Felder, sodass Listener auf `Event` auch
-neue Ereignisse sehen, bevor dafür eine eigene Klasse in der API existiert.
+## Mit dem Spiel arbeiten
 
-Die Gegenrichtung läuft über `getContext().getGame()`.
-`getWorld().getEntityRegistry().getPlayer()` liefert den Helden. Stufe,
-Lebenspunkte, Gold, Erfahrung und Position stammen aus dem zuletzt von
-Coderpack beobachteten Zustand und kosten beim Lesen nichts. Dazu kommen die
-Aktionen `teleport`, `setGold`, `setHp`, `addExp` und `kill`.
-`getAttributes()`, `getSkills()`, `getCombatArts()`, `getStats()` (die
-Statistikseite des Tagebuchs) und `getSheet()` (Rüstung, Angriffs- und
-Laufgeschwindigkeit, Widerstände) fragen bei jedem Aufruf das Spiel und liefern
-einen Schnappschuss. Die ersten drei sind Sammlungen mit `get` und `forEach`;
-`setAttribute`, `setSkill` und `setCombatArt` schreiben zurück. Dieselbe
-`EntityRegistry` zählt die Kreaturen auf, die das Spiel hält, alle oder in der
-Nähe eines Punkts, und liest eine über ihre Ref. `getWorld()` selbst setzt die
-Lebenspunkte einer Kreatur oder tötet sie und nennt Region und Sektor, die der
-Held zuletzt betreten hat. `getTypeRegistry()` bietet `getTypeName`,
-`getTypeId` und `types` für die Nachschlagetabellen des Spiels. Mit `retype` lässt sich die Typbezeichnung
-eines Gegenstands dauerhaft ändern. Name und Darstellung ändern sich, das
-ursprüngliche Verhalten und die Modifikatoren bleiben erhalten. `reshape` macht
-einen Gegenstand zur Kopie eines anderen, samt Modifikatoren. `getUiString`
-liest lokalisierten Text des Spiels, `getConsole().print(text)` schreibt eine
-Zeile in die Konsole im Spiel, und `getDirectory()` ist der Spielordner. Keine
-Sammlung, die die API zurückgibt, lässt sich verändern.
+`getContext().getGame()` gibt dir direkten Zugriff.
 
-Während die Listener eines entscheidbaren Ereignisses laufen, wartet der
-Spiel-Thread auf die Antwort. Solche Listener müssen kurz bleiben. Die Frist
-des Hosts beträgt 250 ms und wird alle 125 ms geprüft. Ist sie abgelaufen,
-lässt der Host den ursprünglichen Wert passieren. Aufrufe über `getContext().getGame()` warten
-höchstens zwei Sekunden auf eine Antwort des Agents.
+- `getWorld().getEntityRegistry().getPlayer()` liefert den Helden. Level, HP,
+  Gold, Erfahrung und Position stammen aus dem zuletzt beobachteten Zustand
+  und kosten beim Lesen nichts. Dazu gibt es `teleport`, `setGold`, `setHp`,
+  `addExp` und `kill`.
+- `getAttributes()`, `getSkills()`, `getCombatArts()`, `getStats()` (die
+  Statistikseite im Tagebuch) und `getSheet()` (Rüstung, Angriffs- und
+  Laufgeschwindigkeit, Resistenzen) fragen bei jedem Aufruf das Spiel und
+  liefern einen Schnappschuss. `setAttribute`, `setSkill` und `setCombatArt`
+  schreiben zurück.
+- Dieselbe `EntityRegistry` listet die Kreaturen auf, die das Spiel gerade
+  hält, in der Nähe eines Punkts oder alle, und liest eine über ihre Referenz.
+  `getWorld()` setzt die HP einer Kreatur, tötet sie und nennt Region und
+  Sektor, die der Held zuletzt betreten hat.
+- `getTypeRegistry()` bietet `getTypeName`, `getTypeId`, `types`, `retype` und
+  `reshape`. `retype` ändert Typbezeichnung und Aussehen eines Gegenstands
+  dauerhaft, behält aber Verhalten und Modifikatoren. `reshape` macht aus einem
+  Gegenstand eine Kopie eines anderen, Modifikatoren eingeschlossen.
+- `getUiString` liest die lokalisierten Texte des Spiels,
+  `getConsole().print(text)` schreibt eine Zeile in die Spielkonsole, und
+  `getDirectory()` liefert den Spielordner.
 
-### Protokollierung
+Jede Sammlung, die die API zurückgibt, ist unveränderlich. Ein Befehl wartet
+bis zu zwei Sekunden auf die Antwort des Agenten.
+
+## Protokollierung
 
 `getContext().log` hängt eine Zeile an `<Sacred Gold>/logs/mods.log` an, eine
-Datei für alle Mods: `[2026-09-23 14:05:31.042] [double-gold]: level 12`. Auf
-die Platte wartet der Aufruf nie. Ein Thread des Loaders schreibt die Zeilen
-gebündelt, daher ist er in einem Listener, während das Spiel wartet, ebenso
-sicher wie aus eigenen Threads eines Mods. `getContext().print` gibt dieselbe
-Zeile stattdessen auf der Konsole des Hosts aus.
+Datei für alle Mods:
 
-Jede andere Art zu schreiben geht genauso: Die Protokollrahmen laufen über eigene benannte
-Pipes, und stdout und stderr der JVM gehören den Mods und landen auf der
-Konsole des Hosts. Log4j2, Logback, slf4j-simple und `java.util.logging`
-funktionieren alle ohne jede Einstellung.
+```
+[2026-09-23 14:05:31.042] [double-gold]: level 12
+```
 
-Der Loader leitet `System.out` trotzdem auf stderr um, bevor der erste Mod
-geladen wird, weshalb ein einfaches `println` dort auftaucht. Das sichert den
-Fall ab, dass der Host keine Pipe anbietet, und ändert für einen Mod nichts.
+Die Methode wartet nie auf die Festplatte: Ein Loader-Thread schreibt die
+Zeilen gesammelt. Du kannst sie also in einem Listener aufrufen, der das Spiel
+aufhält, und genauso aus eigenen Threads. `getContext().print` schickt dieselbe
+Zeile stattdessen an die Konsole des Hosts.
 
-`log` und `print` bleiben dennoch die bessere Gewohnheit: Bei fünf
-installierten Mods sagen nur sie, welcher Mod gesprochen hat.
+Jede andere Protokollierung funktioniert ebenfalls. Log4j2, Logback,
+slf4j-simple und `java.util.logging` brauchen keine Einrichtung, und stdout
+und stderr der JVM landen in der Konsole des Hosts. Vor dem ersten Mod leitet
+der Loader `System.out` auf stderr um, deshalb taucht ein einfaches `println`
+dort auf. Trotzdem sind `log` und `print` die bessere Wahl: Bei fünf
+installierten Mods verraten nur sie, welcher Mod gesprochen hat.
 
-### Derselbe Mod in Kotlin
+## Kotlin und Groovy
 
-`dev.ancaria.coderpack:api-kotlin` ist dieselbe API in Kotlin-Syntax. Sie kann
-nichts, was die Java-API nicht kann: jede Deklaration ruft eine Methode aus
-`api` auf, und die Registrierungshelfer sind inline. Der Loader reicht dieses
-Modul nicht an einen Mod weiter, also packt der Mod es selbst ein, neben die
-Standardbibliothek, die er ohnehin trägt.
+`dev.ancaria.coderpack:api-kotlin` legt Kotlin-Syntax über dieselbe API. Neue
+Fähigkeiten bringt es nicht mit: Jede Deklaration ruft eine Methode aus `api`
+auf. Der Loader liefert das Modul nicht mit, ein Mod packt es also selbst ein,
+neben die Kotlin-Standardbibliothek. Projekte aus
+`coderpack new --language kotlin` binden es schon ein.
 
 ```kotlin
 dependencies {
@@ -245,112 +247,127 @@ class DoubleGold : SacredMod() {
 }
 ```
 
-Drei Dinge tun dort die Arbeit. `SacredMod` ist dieselbe Java-Klasse, von der
-auch ein Java-Mod erbt, und Kotlin liest ihr `getContext()` als `context`, in
-`onLoad` und überall sonst in der Klasse. `on<Gold>` nimmt das Ereignis als
-Typargument statt als Klassenliteral, und `context.events { }` fasst mehrere
-solcher Aufrufe zu einem Block zusammen. Und mit `mutate { }` entscheidet der
-Rumpf. Es existiert nur für Ereignisse, die sich entscheiden lassen, daher
-kompiliert `on<Death> { mutate { ... } }` nicht. Jeder Leser der API ist ein
-Getter, also sieht Kotlin `it.value` und `it.isSpending` schon als
-Eigenschaften, und das Modul fügt keine eigenen hinzu.
+`SacredMod` ist dieselbe Java-Klasse, und Kotlin liest ihr `getContext()` als
+`context`. `on<Gold>` nimmt das Ereignis als Typargument, und
+`context.events { }` fasst mehrere Registrierungen in einem Block zusammen.
+`mutate { }` entscheidet. Es gibt es nur bei entscheidbaren Ereignissen, darum
+kompiliert `on<Death> { mutate { ... } }` nicht. Jeder Lesezugriff der API ist
+ein Getter, `it.value` und `it.isSpending` sind also ohnehin Eigenschaften.
 
-`@Subscribe` funktioniert genau wie aus Java, und
-`context.registry.eventRegistry` direkt aufzurufen ebenfalls. Nichts davon ist
-Pflicht.
+`@Subscribe` und `context.registry.eventRegistry` funktionieren genau wie in
+Java. Keine der Erweiterungen ist Pflicht.
 
-## Coderpack bauen
+Groovy geht auch: `coderpack new --language groovy` legt das Projekt an und
+packt die Groovy-Laufzeit ins JAR des Mods.
 
-Benötigt werden ein JDK ab Version 21 und Python 3.11. Der Gradle-Wrapper lädt
-Gradle 9.7.1 selbst. `hooksafe.py` benötigt zusätzlich `pefile` und `capstone`.
-Für `tests/buildcheck.js` wird Node.js gebraucht.
+## Kompatibilität
 
-```
-gradlew build                  die drei JARs, in */build/libs
-gradlew publishToMavenLocal    damit ein Mod-Build die API aus mavenLocal zieht
-python tools/addr.py           erzeugt agent/src/gen/addr.js neu
-python tools/hooksafe.py       weist Hook-Stellen ab, die ein Trampolin zerlegt
-node tests/buildcheck.js       prüft den Agent gegen einen simulierten Prozess
-python tests/replay.py         die ganze Java-Seite, ohne Spiel
-```
+Der Deskriptor enthält standardmäßig `api = "[3,4)"`. Das ist der Bereich der
+API-Verträge, den der Loader vor dem Start des Mods prüft. Der Vertrag ist
+nicht die Artefaktversion (derzeit `0.200.0`). Die Artefaktversion kann sich
+mit jedem Release ändern, der Vertrag nur dann, wenn Mods für den alten
+Vertrag nicht mehr laufen würden.
 
-`addr.py` bezieht die Adressliste aus dem Repository
-[mappings](https://github.com/ancaria-dev/mappings). Zuerst prüft das Skript
-einen als Argument übergebenen Pfad, dann `$CODERPACK_MAPPINGS` und anschließend
-den benachbarten Checkout `../mappings`. Danach verwendet es die
-zwischengespeicherte Datei `build/mappings/mappings.json` oder lädt sie von
-GitHub dorthin. Ein einzeln geklonter Checkout lässt sich somit ohne
-benachbarte Repositorys bauen.
+- `apiRange` erweitert oder verengt diesen Bereich, etwa
+  `apiRange = "[3,5)"`. Er muss den Vertrag deiner Werkzeugkette enthalten.
+- `loaderRange` begrenzt, welche Releases des Sacred Mod Loader den Mod
+  ausführen dürfen.
 
-Die gewünschte Revision steht in `.mappings-ref`, derzeit `master`. Für einen
-reproduzierbaren Build gehört dort ein Tag oder Commit hinein. Spieladressen
-werden nicht von Hand in den Agent geschrieben. `addr.py` erzeugt daraus
-`agent/src/gen/addr.js` mit 52 RVAs, vier globalen Adressen und den Signaturen
-von 38 Hook-Stellen.
+Schließt einer der Bereiche die aktuelle Version aus, zeigt der Launcher den
+Mod mit deaktiviertem Häkchen und nennt den Grund. Der JVM-Loader prüft
+dieselben Bereiche, bevor er Code des Mods ausführt, und protokolliert eine
+Ablehnung. Ein fehlendes oder ungültiges Feld `api` wird ebenfalls abgelehnt.
+Ein ungültiger Bereich `loader` auch, doch fehlt
+`<Sacred Gold>/launcher/VERSION`, überspringt der Loader die Prüfung von
+`loader`.
 
-Ohne Argument sucht `hooksafe.py` unter
-`D:\SteamLibrary\steamapps\common\Sacred Gold` nach `pureHD.exe`, `Sacred.exe`
-oder `Game.exe`. Ein Pfad zum Installationsverzeichnis oder direkt zur
-ausführbaren Datei kann übergeben werden. Findet das Skript keine dieser
-Dateien, meldet es `skipped` und beendet sich erfolgreich.
+## So funktioniert es
 
-Frida überschreibt an einer Hook-Stelle mindestens fünf Byte und verschiebt
-dabei immer vollständige x86-Instruktionen in ein Trampolin. `hooksafe.py`
-verweigert unter anderem Stellen, bei denen ein Sprung in den überschriebenen
-Bereich führt, eine Flag-setzende Instruktion von ihrem bedingten Sprung
-getrennt wird oder sich zwei Hook-Bereiche überlappen. Weitere riskante Formen
-werden als Warnung ausgegeben. Mit `--signatures` schreibt das Skript außerdem
-die ersten acht Byte jeder der 38 Hook-Stellen nach
-`agent/signatures.json`. Der Agent vergleicht diese Signaturen beim Einhängen
-mit dem laufenden Prozess und warnt bei einem abweichenden Build. Die Hooks
-werden trotz der Warnung installiert.
+Sacred Gold ist ein 32-Bit-Prozess, deshalb läuft die JVM neben dem Spiel,
+nicht darin. Dazwischen sitzt der Rust-Host aus
+[protocol](https://github.com/ancaria-dev/protocol). Er injiziert den Agenten,
+startet die JVM und überträgt das Zeilenprotokoll. Auf der JVM-Seite verteilt
+ein Lesethread die Antworten auf Befehle und reiht Ereignisse ein, und der
+Thread `sal-dispatch` ruft die Listener der Mods Ereignis für Ereignis auf.
 
-`replay.py` setzt zuvor mit `gradlew jar` gebaute JAR-Dateien für `api` und
-`zygote` sowie mindestens eine Mod-JAR voraus. Es sucht im benachbarten
-`mods`-Checkout oder nimmt ein Verzeichnis als Argument entgegen. Das Skript
-sendet einen vorbereiteten Ereignisstrom an den Loader und vergleicht jedes
-Urteil. Fehlen Mod-JARs, endet es mit einem Fehler und der Meldung
-`no mod jars found`. Der Trace muss auch das unbekannte Ereignis enthalten. Ob
-das Spiel den gewünschten Wert anschließend wirklich übernimmt, kann nur ein
-Test im Spiel klären.
-
-Auf dem Branch `master` liest die CI `version` aus `gradle.properties`. Gibt es
-auf dem Remote noch keinen Tag `v<version>`, lädt sie API, ihre Kotlin-Erweiterungen und den
-zygote als ein signiertes Bündel über die Portal-API zu Maven Central hoch, legt
-`api.jar`,
-`zygote.jar` und `agent.zip` als Release-Artefakte ab und erstellt den Tag.
-`agent.zip` enthält bereits die erzeugte Adresstabelle und ist das, was der Host
-in sich einbettet, wenn kein coderpack-Checkout neben ihm liegt. Eine höhere
-Versionsnummer löst daher beim nächsten Build auf `master` ein Release aus.
-
-Der Upload veröffentlicht noch nichts: er wartet im Portal darauf, dass jemand
-Publish drückt. Ein Artefakt in Central lässt sich nie wieder löschen, die
-ersten Releases sind also einen Blick wert.
-
-## Was hier liegt
-
-| | |
+| Pfad | Inhalt |
 |---|---|
-| `agent/` | Von Frida injiziertes JavaScript. Setzt Hooks auf x86-Instruktionen und sendet die beobachteten Vorgänge. Die Adressen kommen aus `gen/addr.js`. |
-| `api/` | `dev.ancaria.coderpack:api`. Dagegen werden Mods kompiliert. Zur Laufzeit hat das Modul keine Abhängigkeiten. JSR 305 ist nur als compileOnly eingebunden. |
-| `api-kotlin/` | `dev.ancaria.coderpack:api-kotlin`, dieselbe API in Kotlin. Inline-Erweiterungen über `api` im Paket `dev.ancaria.coderpack.ktx`. Der Loader liefert das Modul nicht mit; ein Mod, der es nutzt, packt es ein. |
-| `zygote/` | `dev.ancaria.coderpack:zygote`. Liest Frames vom Host, findet die Mod-JARs, gibt jeder einen eigenen Classloader und verteilt die Ereignisse. |
-| `tools/`, `tests/`, `docs/` | Adressgenerator und Hook-Prüfung, Tests ohne laufendes Spiel sowie [RUNNING.md](docs/RUNNING.md) mit den Schritten zum Starten. |
+| `agent/` | JavaScript, das Frida ins Spiel injiziert. Es hängt sich an einzelne x86-Instruktionen und meldet, was es sieht. Die Adressen stammen aus `gen/addr.js`. |
+| `api/` | `dev.ancaria.coderpack:api`, gegen das Mods kompiliert werden. Keine Laufzeitabhängigkeiten, JSR 305 nur beim Kompilieren. |
+| `api-kotlin/` | `dev.ancaria.coderpack:api-kotlin`, Inline-Erweiterungen in Kotlin über `api` im Paket `dev.ancaria.coderpack.ktx`. |
+| `zygote/` | `dev.ancaria.coderpack:zygote`. Liest Frames vom Host, findet Mod-JARs, gibt jedem Mod einen eigenen Classloader und verteilt Ereignisse. |
+| `tools/`, `tests/`, `docs/` | Werkzeuge für Adressen und Hook-Sicherheit, Testumgebungen und [RUNNING.md](docs/RUNNING.md) zu Bauen, Starten und Absturzsuche. |
 
-Sacred Gold ist ein 32-Bit-Spiel. Coderpack bettet die JVM nicht in diesen
-Prozess ein, sondern startet sie separat. Dazwischen vermittelt der Rust-Host
-[ancaria-dev/protocol](https://github.com/ancaria-dev/protocol). Er injiziert
-den Agent, startet die JVM und überträgt ein zeilenbasiertes Protokoll zwischen
-beiden Seiten. Der lesende JVM-Thread ordnet Befehlsantworten zu und stellt
-Ereignisse in die Warteschlange. `sal-dispatch` ruft die Mod-Listener
-nacheinander für jeweils ein Ereignis auf.
+## Bauen
+
+Du brauchst JDK 21 oder neuer und Python 3.11. Der Gradle-Wrapper lädt Gradle
+9.7.1 selbst. `tools/hooksafe.py` braucht außerdem `pefile` und `capstone`,
+`tests/buildcheck.js` braucht Node.
+
+```
+gradlew build                  the three jars, in */build/libs
+gradlew publishToMavenLocal    lets a mod build resolve the API from mavenLocal
+python tools/addr.py           regenerates agent/src/gen/addr.js
+python tools/hooksafe.py       refuses hook sites a trampoline would corrupt
+node tests/buildcheck.js       checks the agent against a fake process
+python tests/replay.py         checks the Java side with no game running
+```
+
+### Adressen
+
+`addr.py` erzeugt die Spieladressen aus der Registry in
+[mappings](https://github.com/ancaria-dev/mappings). Von Hand kopiert sie
+niemand. Die Registry sucht es in dieser Reihenfolge: ein Pfad auf der
+Kommandozeile, `$CODERPACK_MAPPINGS`, der Nachbar-Checkout `../mappings`,
+dann `build/mappings/mappings.json`. Gibt es nichts davon, lädt es die Datei
+von GitHub in diesen Cache. Die Revision steht in `.mappings-ref`, derzeit
+`master`. Für einen reproduzierbaren Build trägst du dort einen Tag oder
+Commit ein.
+
+Alle Adressen gehören zu `pureHD.exe` 2.0.2.118. Der Loader verbindet sich
+auch mit `Sacred.exe` und `Game.exe`, doch der Agent warnt, wenn die Bytes an
+den Hook-Stellen nicht zu `agent/signatures.json` passen. Die Hooks setzt er
+trotzdem.
+
+### Hook-Sicherheit
+
+Frida ersetzt an einer Hook-Stelle mindestens fünf Bytes. Nach einer kurzen
+Instruktion ragt der Patch in die nächste hinein. `hooksafe.py` lehnt eine
+Stelle ab, wenn ein Sprung mitten in die ersetzten Bytes führt, zwei Patches
+sich überlappen oder die Verschiebung eine Flag-setzende Instruktion von ihrem
+bedingten Sprung trennt. Andere riskante Fälle erzeugen Warnungen.
+
+Standardmäßig liest das Skript das Spiel aus
+`D:\SteamLibrary\steamapps\common\Sacred Gold`. Für ein anderes übergibst du
+die EXE oder ihren Ordner. Enthält der Ordner keine unterstützte EXE, gibt die
+Prüfung `skipped` aus. `--signatures` schreibt `agent/signatures.json` aus der
+gewählten Datei neu.
+
+### Replay
+
+`replay.py` spielt dem Loader einen vorbereiteten Ereignisstrom vor, prüft
+jede Entscheidung und gleicht die Spur ab, ein unbekanntes Ereignis
+eingeschlossen. Es braucht die beiden gebauten JARs in `*/build/libs` und
+mindestens einen gebauten Mod. Den sucht es in `../mods/*/build/sacred-mod/`
+oder nimmt einen Ordner als Argument. Ohne Mod bricht es mit
+`no mod jars found` und einem Status ungleich null ab. Ob das Spiel den
+gewünschten Wert wirklich übernimmt, kann der Replay nicht beweisen.
+
+## Releases
+
+Auf `master` veröffentlicht die CI die Version aus `gradle.properties`, wenn es
+auf dem Server noch keinen Tag `v<version>` gibt. Sie lädt `api`, `api-kotlin`
+und `zygote` als ein signiertes Paket in Maven Central, hängt `api.jar`,
+`zygote.jar` und `agent.zip` an ein GitHub-Release und legt danach den Tag an.
+`agent.zip` enthält die erzeugte Adresstabelle, deshalb baut `protocol` auch
+ohne coderpack-Checkout daneben.
+
+Der Upload wartet im Central-Portal, bis jemand auf Publish drückt. Ein
+Artefakt in Central lässt sich nie wieder löschen, schau es dir also vorher
+an. Die Reihenfolge der Releases über alle Repositories steht im
+[CONTRIBUTING](https://github.com/ancaria-dev/.github/blob/master/CONTRIBUTING.DE.md)
+des Wurzel-Repositorys.
 
 ## Lizenz
 
-Der Code steht unter der MIT-Lizenz. Der vollständige Text befindet sich in
-[LICENSE](LICENSE).
-
----
-
-Das Projekt begann als Proof of Concept für Java-Mods in Sacred Gold. Ein
-Supportversprechen ist damit nicht verbunden.
+MIT, siehe [LICENSE](LICENSE).
